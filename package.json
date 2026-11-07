@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "npm run dev -w server & npm run dev -w client",
-    "build": "npm run build -w client",
+    "build": "npm run build -w client && npm run build -w server",
     "start": "npm start -w server",
     "test": "npm test -w shared -w server",
     "typecheck": "npm run typecheck -w shared -w server && npx tsc --noEmit -p client",

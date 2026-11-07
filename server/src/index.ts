@@ -1,75 +1,71 @@
-import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { extname, join, normalize, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { WebSocket, WebSocketServer } from 'ws';
 import { parseClientMessage } from '@sudoku/shared';
+import { config } from './config';
 import { type Connection, Lobby } from './lobby';
+import { RateLimiter } from './rateLimit';
+import { serveStatic } from './static';
 
-const PORT = Number(process.env.PORT ?? 8787);
-const HEARTBEAT_MS = 25_000;
-const MAX_MESSAGE_BYTES = 1024;
-
-/** In production the server also serves the built client, so one service hosts everything. */
-const CLIENT_DIST = resolve(fileURLToPath(import.meta.url), '../../../client/dist');
-const MIME: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.ico': 'image/x-icon',
-  '.webmanifest': 'application/manifest+json',
-};
-
-const lobby = new Lobby();
+const lobby = new Lobby({ maxRooms: config.maxRooms });
+const staticFiles = serveStatic(config.clientDist);
 
 const http = createServer((req, res) => {
-  const path = new URL(req.url ?? '/', 'http://x').pathname;
-  if (path === '/health') {
+  if (req.url === '/health') {
     res.writeHead(200, { 'content-type': 'text/plain' }).end('ok');
     return;
   }
-  if (!existsSync(CLIENT_DIST)) {
-    res
-      .writeHead(404, { 'content-type': 'text/plain' })
-      .end('Client not built. In development, use the Vite dev server.');
-    return;
-  }
-  let file = join(CLIENT_DIST, normalize(path));
-  // Unknown paths fall back to the app, so room links like /?room=ABC234 always load.
-  if (!file.startsWith(CLIENT_DIST) || !existsSync(file) || statSync(file).isDirectory()) {
-    file = join(CLIENT_DIST, 'index.html');
-  }
-  const immutable = file.includes(`${CLIENT_DIST}/assets/`);
-  res.writeHead(200, {
-    'content-type': MIME[extname(file)] ?? 'application/octet-stream',
-    'cache-control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
-  });
-  createReadStream(file).pipe(res);
+  staticFiles(req, res);
 });
 
-const wss = new WebSocketServer({ server: http, path: '/ws', maxPayload: MAX_MESSAGE_BYTES });
+/** Same-origin pages may connect, plus any explicitly allowed origins. Non-browser clients send no Origin. */
+function originAllowed(origin: string | undefined, host: string | undefined): boolean {
+  if (!origin) return true;
+  if (config.allowedOrigins.includes(origin)) return true;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
+const wss = new WebSocketServer({
+  server: http,
+  path: '/ws',
+  maxPayload: config.maxMessageBytes,
+  verifyClient: ({ origin, req }) => originAllowed(origin, req.headers.host),
+});
 const alive = new WeakMap<WebSocket, boolean>();
 
 wss.on('connection', (socket) => {
   alive.set(socket, true);
   socket.on('pong', () => alive.set(socket, true));
+  // Without a listener, one malformed frame would throw and take the whole server down.
+  socket.on('error', (err) => console.warn('socket error:', err.message));
 
+  const limiter = new RateLimiter(40, 20);
   const conn: Connection = {
-    send: (msg) => socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify(msg)),
+    send: (msg) => {
+      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(msg));
+    },
   };
 
   socket.on('message', (data) => {
+    if (!limiter.take()) {
+      socket.close(1008, 'Too many messages');
+      return;
+    }
     const msg = parseClientMessage(data.toString());
-    if (!msg) return conn.send({ t: 'error', message: 'Invalid message.' });
+    if (!msg) {
+      conn.send({ t: 'error', message: 'Invalid message.' });
+      return;
+    }
     lobby.handle(conn, msg);
   });
   socket.on('close', () => lobby.disconnect(conn));
 });
 
 // Drops sockets that stopped answering, and keeps idle ones from being cut by hosting proxies.
-setInterval(() => {
+const heartbeat = setInterval(() => {
   for (const socket of wss.clients) {
     if (!alive.get(socket)) {
       socket.terminate();
@@ -79,6 +75,19 @@ setInterval(() => {
     socket.ping();
   }
   lobby.sweep();
-}, HEARTBEAT_MS);
+}, config.heartbeatMs);
 
-http.listen(PORT, () => console.info(`sudoku server listening on :${PORT}`));
+http.listen(config.port, () => console.info(`sudoku server listening on :${config.port}`));
+
+// Hosts send SIGTERM before replacing an instance. Rooms live in memory, so in-progress games end here;
+// close sockets with "service restart" so clients show a clear message instead of hanging.
+function shutdown(signal: string) {
+  console.info(`${signal} received, shutting down`);
+  clearInterval(heartbeat);
+  for (const socket of wss.clients) socket.close(1012, 'Server restarting');
+  wss.close();
+  http.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), config.shutdownGraceMs).unref();
+}
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));

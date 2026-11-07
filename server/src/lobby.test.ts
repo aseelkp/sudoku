@@ -194,6 +194,15 @@ describe('connections', () => {
     expect(a.room.status).toBe('countdown');
   });
 
+  it('refuses new rooms beyond the limit', () => {
+    const small = new Lobby({ maxRooms: 1, generate: () => puzzle });
+    small.handle(new TestConn(), { t: 'create', mode: 'race', difficulty: 'easy', name: 'Ana' });
+    const late = new TestConn();
+    small.handle(late, { t: 'create', mode: 'race', difficulty: 'easy', name: 'Ben' });
+    expect(late.lastError).toMatchObject({ message: expect.stringContaining('server is full') });
+    expect(small.roomCount).toBe(1);
+  });
+
   it('cleans up rooms nobody is connected to', () => {
     const { a, b } = startRace();
     lobby.disconnect(a);

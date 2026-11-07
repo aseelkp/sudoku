@@ -25,6 +25,8 @@ export interface LobbyOptions {
   countdownMs?: number;
   /** Rooms with nobody connected are removed after this long. */
   abandonedRoomMs?: number;
+  /** New rooms are refused beyond this many, to bound memory. */
+  maxRooms?: number;
   generate?: (difficulty: Difficulty) => Puzzle;
 }
 
@@ -32,11 +34,13 @@ export class Lobby {
   private rooms = new Map<string, Room>();
   private readonly countdownMs: number;
   private readonly abandonedRoomMs: number;
+  private readonly maxRooms: number;
   private readonly generate: (difficulty: Difficulty) => Puzzle;
 
   constructor(opts: LobbyOptions = {}) {
     this.countdownMs = opts.countdownMs ?? 3000;
     this.abandonedRoomMs = opts.abandonedRoomMs ?? 10 * 60_000;
+    this.maxRooms = opts.maxRooms ?? Infinity;
     this.generate = opts.generate ?? generatePuzzle;
   }
 
@@ -92,6 +96,9 @@ export class Lobby {
   }
 
   private create(conn: Connection, mode: Mode, difficulty: Difficulty, name: string) {
+    if (this.rooms.size >= this.maxRooms) {
+      return conn.send({ t: 'error', message: 'The server is full right now. Try again in a few minutes.' });
+    }
     this.unseat(conn);
     const room = newRoom(this.newCode(), mode, difficulty);
     this.rooms.set(room.code, room);
