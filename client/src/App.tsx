@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react';
 import { normalizeCode } from '@sudoku/shared';
 import { HomeScreen } from './screens/HomeScreen';
-import { RaceScreen } from './screens/RaceScreen';
+import { RoomScreen } from './screens/RoomScreen';
 import { SoloScreen } from './screens/SoloScreen';
-import { type RaceIntent, loadSession } from './useRace';
+import { type RoomIntent, loadSession } from './useRoom';
 
-type Screen = { t: 'home' } | { t: 'solo' } | { t: 'race'; intent: RaceIntent };
+type Screen = { t: 'home' } | { t: 'solo' } | { t: 'race'; intent: RoomIntent };
 
 const roomInUrl = () => normalizeCode(new URLSearchParams(location.search).get('room') ?? '');
 
@@ -44,7 +44,7 @@ export function App() {
         />
       )}
       {screen.t === 'solo' && <SoloScreen onHome={home} />}
-      {screen.t === 'race' && <RaceScreen intent={screen.intent} onExit={home} onRoomCode={onRoomCode} />}
+      {screen.t === 'race' && <RoomScreen intent={screen.intent} onExit={home} onRoomCode={onRoomCode} />}
     </main>
   );
 }

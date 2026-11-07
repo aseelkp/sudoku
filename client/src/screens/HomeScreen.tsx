@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { DIFFICULTIES, type Difficulty, MAX_NAME_LENGTH, type Mode, ROOM_CODE_LENGTH, normalizeCode, normalizeName } from '@sudoku/shared';
-import type { RaceIntent } from '../useRace';
+import type { RoomIntent } from '../useRoom';
 
 const NAME_KEY = 'sudoku:name';
 
 const MODE_OPTIONS: { mode: Mode; title: string; detail: string }[] = [
   { mode: 'race', title: 'Same puzzle', detail: 'Both solve the identical grid' },
   { mode: 'fair-race', title: 'Different puzzles', detail: 'Unique grids, equally hard' },
+  { mode: 'coop', title: 'Co-op', detail: 'Solve one board together' },
 ];
 
 function loadName() {
@@ -20,7 +21,7 @@ function loadName() {
 interface Props {
   initialCode: string;
   onSolo: () => void;
-  onRace: (intent: RaceIntent) => void;
+  onRace: (intent: RoomIntent) => void;
 }
 
 export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
@@ -52,7 +53,7 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
     <div className="home">
       <header className="hero">
         <h1>Sudoku</h1>
-        <p>Play alone, or race a friend.</p>
+        <p>Play alone, race a friend, or solve one together.</p>
       </header>
 
       <section className="card">
@@ -63,7 +64,7 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
       </section>
 
       <section className="card">
-        <h2>Race a friend</h2>
+        <h2>Play with a friend</h2>
         <label className="field">
           <span>Your name</span>
           <input
@@ -78,7 +79,7 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
               setNameMissing(false);
             }}
           />
-          {nameMissing && <small className="error-text">Enter a name so your opponent knows who they’re racing.</small>}
+          {nameMissing && <small className="error-text">Enter a name so your friend knows who they’re playing with.</small>}
         </label>
 
         <div className="split">
@@ -89,7 +90,7 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
               withName((n) => onRace({ t: 'create', mode, difficulty, name: n }));
             }}
           >
-            <h3>Start a race</h3>
+            <h3>Start a game</h3>
             <div className="modes" role="radiogroup" aria-label="Race type">
               {MODE_OPTIONS.map((m) => (
                 <button
@@ -131,7 +132,7 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
               if (cleanCode.length === ROOM_CODE_LENGTH) withName((n) => onRace({ t: 'join', code: cleanCode, name: n }));
             }}
           >
-            <h3>Join a race</h3>
+            <h3>Join a game</h3>
             <input
               className="code-input"
               value={code}

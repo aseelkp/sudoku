@@ -4,16 +4,16 @@ import { Board } from '../components/Board';
 import { NumberPad } from '../components/NumberPad';
 import { formatTime } from '../time';
 import { useBoardKeys } from '../useBoardKeys';
-import { type RaceIntent, useRace } from '../useRace';
+import { type RoomIntent, useRoom } from '../useRoom';
 
 interface Props {
-  intent: RaceIntent;
+  intent: RoomIntent;
   onExit: () => void;
   onRoomCode: (code: string) => void;
 }
 
-export function RaceScreen({ intent, onExit, onRoomCode }: Props) {
-  const race = useRace(intent);
+export function RoomScreen({ intent, onExit, onRoomCode }: Props) {
+  const race = useRoom(intent);
   const { room, board, clockOffset } = race;
   const [, tick] = useState(0);
 
@@ -86,15 +86,19 @@ export function RaceScreen({ intent, onExit, onRoomCode }: Props) {
         <Waiting code={room.code} mode={room.mode} difficulty={room.difficulty} />
       ) : (
         <>
-          <div className="racers">
-            <Racer player={me} label="You" />
-            {opponent ? <Racer player={opponent} label={opponent.name} /> : <div className="racer gone">Opponent left</div>}
-          </div>
+          {room.mode === 'coop' ? (
+            <Team me={me} partner={opponent} />
+          ) : (
+            <div className="racers">
+              <Racer player={me} label="You" />
+              {opponent ? <Racer player={opponent} label={opponent.name} /> : <div className="racer gone">Opponent left</div>}
+            </div>
+          )}
 
           <div className="stats">
             <span className="badge">{room.difficulty}</span>
             <span className="mode-tag">{MODE_LABEL[room.mode]}</span>
-            <span className={me.mistakes ? 'mistakes has' : 'mistakes'}>Mistakes: {me.mistakes}</span>
+            <span className={board?.mistakes ? 'mistakes has' : 'mistakes'}>Mistakes: {board?.mistakes ?? 0}</span>
             <span className="timer" aria-label="Time">
               {formatTime(me.finishedMs ?? (room.status === 'playing' ? elapsed : finishedElapsed(room)))}
             </span>
@@ -108,6 +112,7 @@ export function RaceScreen({ intent, onExit, onRoomCode }: Props) {
                 selected={race.selected}
                 wrongMove={race.wrongMove}
                 pending={race.pending}
+                partnerCursor={room.status === 'playing' ? (opponent?.cursor ?? null) : null}
                 disabled={!race.canPlay}
                 onSelect={race.select}
               />
@@ -144,7 +149,7 @@ function finishedElapsed(room: RoomView) {
   return room.winner !== null ? (room.players[room.winner]?.finishedMs ?? 0) : 0;
 }
 
-const MODE_LABEL: Record<Mode, string> = { race: 'Same puzzle', 'fair-race': 'Different puzzles' };
+const MODE_LABEL: Record<Mode, string> = { race: 'Same puzzle', 'fair-race': 'Different puzzles', coop: 'Co-op' };
 
 function Waiting({ code, mode, difficulty }: { code: string; mode: Mode; difficulty: RoomView['difficulty'] }) {
   const [copied, setCopied] = useState(false);
@@ -156,7 +161,9 @@ function Waiting({ code, mode, difficulty }: { code: string; mode: Mode; difficu
       <p className="muted">
         <span className="badge">{difficulty}</span> · {MODE_LABEL[mode]}
       </p>
-      <p className="muted">Send them this code or link. The race starts as soon as they join.</p>
+      <p className="muted">
+        Send them this code or link. {mode === 'coop' ? 'You’ll start' : 'The race starts'} as soon as they join.
+      </p>
       <div className="big-code">{code}</div>
       <div className="share">
         <input readOnly value={link} aria-label="Invite link" onFocus={(e) => e.target.select()} />
@@ -203,14 +210,56 @@ function Racer({ player, label }: { player: PlayerSummary; label: string }) {
   );
 }
 
+function Team({ me, partner }: { me: PlayerSummary; partner: PlayerSummary | null }) {
+  const pct = Math.round(me.progress * 100);
+  return (
+    <div className="team">
+      <div className="racer-head">
+        <span className="racer-name">Board {pct}% done</span>
+      </div>
+      <div className="track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Board progress">
+        <div className="fill" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="teammates">
+        <Teammate player={me} label="You" />
+        {partner ? <Teammate player={partner} label={partner.name} partner /> : <span className="muted">Partner left · keep going</span>}
+      </div>
+    </div>
+  );
+}
+
+function Teammate({ player, label, partner }: { player: PlayerSummary; label: string; partner?: boolean }) {
+  return (
+    <span className="teammate">
+      <span className={partner ? 'swatch partner' : 'swatch'} aria-hidden="true" />
+      <strong>{label}</strong>
+      {!player.connected && <em> · reconnecting</em>}
+      <span className="muted">
+        {' '}
+        {player.placed} placed{player.mistakes > 0 && <span className="mistakes has"> · {player.mistakes}✕</span>}
+      </span>
+    </span>
+  );
+}
+
 function Results({ room, onRematch, onExit }: { room: RoomView; onRematch: () => void; onExit: () => void }) {
   const me = room.players[room.you];
   const opponent = room.players.find((_, i) => i !== room.you);
   const won = room.winner === room.you;
+  const coop = room.mode === 'coop';
+  const mistakes = room.board?.mistakes ?? 0;
 
-  const title = won ? 'You win!' : `${room.players[room.winner ?? 0]?.name ?? 'Opponent'} wins`;
-  const detail =
-    room.endReason === 'forfeit'
+  const title = coop
+    ? opponent
+      ? 'Solved together!'
+      : 'Solved!'
+    : won
+      ? 'You win!'
+      : `${room.players[room.winner ?? 0]?.name ?? 'Opponent'} wins`;
+  const detail = coop
+    ? `${formatTime(me.finishedMs ?? 0)} · ${mistakes} ${mistakes === 1 ? 'mistake' : 'mistakes'}` +
+      (opponent ? ` · you placed ${me.placed}, ${opponent.name} placed ${opponent.placed}.` : '.')
+    : room.endReason === 'forfeit'
       ? 'Your opponent left the race.'
       : won
         ? `Solved in ${formatTime(me.finishedMs ?? 0)} with ${me.mistakes} ${me.mistakes === 1 ? 'mistake' : 'mistakes'}.`
@@ -223,7 +272,15 @@ function Results({ room, onRematch, onExit }: { room: RoomView; onRematch: () =>
       <div className="row">
         {opponent ? (
           <button type="button" className="primary" disabled={me.wantsRematch} onClick={onRematch}>
-            {me.wantsRematch ? `Waiting for ${opponent.name}…` : opponent.wantsRematch ? 'Accept rematch' : 'Rematch'}
+            {me.wantsRematch
+              ? `Waiting for ${opponent.name}…`
+              : opponent.wantsRematch
+                ? coop
+                  ? 'Play again'
+                  : 'Accept rematch'
+                : coop
+                  ? 'Play again'
+                  : 'Rematch'}
           </button>
         ) : (
           <button type="button" className="primary" onClick={onRematch}>
@@ -234,7 +291,11 @@ function Results({ room, onRematch, onExit }: { room: RoomView; onRematch: () =>
           Leave
         </button>
       </div>
-      {opponent?.wantsRematch && !me.wantsRematch && <p className="muted">{opponent.name} wants a rematch.</p>}
+      {opponent?.wantsRematch && !me.wantsRematch && (
+        <p className="muted">
+          {opponent.name} wants {coop ? 'to play again' : 'a rematch'}.
+        </p>
+      )}
     </div>
   );
 }

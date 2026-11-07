@@ -7,13 +7,15 @@ interface Props {
   wrongMove: { cell: number; id: number } | null;
   /** A digit sent to the server but not yet confirmed. */
   pending?: { cell: number; digit: number } | null;
+  /** The co-op partner's selected cell. */
+  partnerCursor?: number | null;
   disabled?: boolean;
   onSelect: (cell: number) => void;
 }
 
 const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-export function Board({ board, notes, selected, wrongMove, pending, disabled, onSelect }: Props) {
+export function Board({ board, notes, selected, wrongMove, pending, partnerCursor, disabled, onSelect }: Props) {
   const valueAt = (cell: number) => (pending?.cell === cell ? pending.digit : board.values[cell]);
   const selectedDigit = selected === null ? 0 : valueAt(selected);
 
@@ -35,6 +37,7 @@ export function Board({ board, notes, selected, wrongMove, pending, disabled, on
           related && 'related',
           value !== 0 && value === selectedDigit && 'same-digit',
           cell === selected && 'selected',
+          cell === partnerCursor && 'partner',
         ].filter(Boolean);
 
         return (

@@ -19,6 +19,7 @@ import {
   progress,
   scramblePuzzle,
   toPlayerBoard,
+  toggleNote,
 } from '@sudoku/shared';
 
 /** One open socket. A player keeps their seat across reconnects; connections come and go. */
@@ -32,9 +33,13 @@ interface Player {
   id: string;
   name: string;
   conn: Connection | null;
+  /** This player's own board in races. Unused in co-op, which plays on `room.shared`. */
   game: GameState | null;
   finishedMs: number | null;
   wantsRematch: boolean;
+  placed: number;
+  mistakes: number;
+  cursor: number | null;
 }
 
 interface Room {
@@ -43,6 +48,8 @@ interface Room {
   difficulty: Difficulty;
   status: RoomStatus;
   players: Player[];
+  /** The one board everybody fills in co-op. */
+  shared: GameState | null;
   startAt: number | null;
   round: number;
   winner: number | null;
@@ -92,7 +99,12 @@ export class Lobby {
     switch (msg.t) {
       case 'move':
       case 'erase':
+      case 'note':
         return this.play(room, player, index, msg);
+      case 'cursor':
+        if (room.mode !== 'coop' || player.cursor === msg.cell) return;
+        player.cursor = msg.cell;
+        return this.broadcast(room);
       case 'rematch':
         return this.rematch(room, player);
       case 'leave':
@@ -125,6 +137,7 @@ export class Lobby {
       difficulty,
       status: 'waiting',
       players: [],
+      shared: null,
       startAt: null,
       round: 0,
       winner: null,
@@ -170,6 +183,9 @@ export class Lobby {
       game: null,
       finishedMs: null,
       wantsRematch: false,
+      placed: 0,
+      mistakes: 0,
+      cursor: null,
     };
     room.players.push(player);
     room.emptySince = null;
@@ -185,20 +201,44 @@ export class Lobby {
     if (found) this.leave(found.room, found.index);
   }
 
-  private play(room: Room, player: Player, index: number, msg: Extract<ClientMessage, { t: 'move' | 'erase' }>) {
-    if (room.status !== 'playing' || !player.game || player.finishedMs !== null) return;
+  private play(
+    room: Room,
+    player: Player,
+    index: number,
+    msg: Extract<ClientMessage, { t: 'move' | 'erase' | 'note' }>,
+  ) {
+    const coop = room.mode === 'coop';
+    let game = coop ? room.shared : player.game;
+    if (room.status !== 'playing' || !game || player.finishedMs !== null) return;
 
     if (msg.t === 'erase') {
-      player.game = eraseCell(player.game, msg.cell);
+      game = eraseCell(game, msg.cell);
+    } else if (msg.t === 'note') {
+      // In races pencil marks never leave the device.
+      if (!coop) return;
+      game = toggleNote(game, msg.cell, msg.digit);
     } else {
-      player.game = placeDigit(player.game, msg.cell, msg.digit).state;
-      if (isSolved(player.game)) {
-        player.finishedMs = Date.now() - room.startAt!;
-        room.winner ??= index;
-        room.endReason ??= 'solved';
-        room.status = 'finished';
-      }
+      const { state, result } = placeDigit(game, msg.cell, msg.digit);
+      game = state;
+      if (result === 'correct') player.placed++;
+      if (result === 'wrong') player.mistakes++;
     }
+
+    if (coop) room.shared = game;
+    else player.game = game;
+
+    if (msg.t === 'move' && isSolved(game)) {
+      const ms = Date.now() - room.startAt!;
+      if (coop) {
+        for (const p of room.players) p.finishedMs = ms;
+      } else {
+        player.finishedMs = ms;
+        room.winner ??= index;
+      }
+      room.endReason ??= 'solved';
+      room.status = 'finished';
+    }
+    // Broadcast even when nothing changed, so the sender's pending digit always clears.
     this.broadcast(room);
   }
 
@@ -221,7 +261,7 @@ export class Lobby {
 
     if (room.status === 'countdown') {
       this.reset(room, 'waiting');
-    } else if (room.status === 'playing') {
+    } else if (room.status === 'playing' && room.mode !== 'coop') {
       room.status = 'finished';
       room.winner = 0; // the player who stayed
       room.endReason = 'forfeit';
@@ -243,8 +283,10 @@ export class Lobby {
   private start(room: Room) {
     room.timer = null;
     const puzzle = this.generate(room.difficulty);
-    for (const p of room.players) {
-      p.game = newGame(room.mode === 'fair-race' ? scramblePuzzle(puzzle) : puzzle);
+    if (room.mode === 'coop') {
+      room.shared = newGame(puzzle);
+    } else {
+      for (const p of room.players) p.game = newGame(room.mode === 'fair-race' ? scramblePuzzle(puzzle) : puzzle);
     }
     room.status = 'playing';
     this.broadcast(room);
@@ -254,6 +296,7 @@ export class Lobby {
     if (room.timer) clearTimeout(room.timer);
     room.timer = null;
     room.status = status;
+    room.shared = null;
     room.startAt = null;
     room.winner = null;
     room.endReason = null;
@@ -261,6 +304,9 @@ export class Lobby {
       p.game = null;
       p.finishedMs = null;
       p.wantsRematch = false;
+      p.placed = 0;
+      p.mistakes = 0;
+      p.cursor = null;
     }
   }
 
@@ -279,6 +325,8 @@ export class Lobby {
 
   private view(room: Room, you: number, serverNow: number): RoomView {
     const me = room.players[you];
+    const coop = room.mode === 'coop';
+    const myGame = coop ? room.shared : me.game;
     return {
       code: room.code,
       mode: room.mode,
@@ -288,15 +336,18 @@ export class Lobby {
       players: room.players.map((p) => ({
         name: p.name,
         connected: p.conn !== null,
-        progress: p.game ? progress(p.game) : 0,
-        mistakes: p.game?.mistakes ?? 0,
+        progress: coop ? (room.shared ? progress(room.shared) : 0) : p.game ? progress(p.game) : 0,
+        mistakes: p.mistakes,
+        placed: p.placed,
+        cursor: coop ? p.cursor : null,
         finishedMs: p.finishedMs,
         wantsRematch: p.wantsRematch,
       })),
       startAt: room.startAt,
       serverNow,
       round: room.round,
-      board: me.game ? toPlayerBoard(me.game) : null,
+      board: myGame ? toPlayerBoard(myGame) : null,
+      notes: coop && room.shared ? room.shared.notes : null,
       winner: room.winner,
       endReason: room.endReason,
     };

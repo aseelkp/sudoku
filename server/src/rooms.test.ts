@@ -283,3 +283,73 @@ function solveGrid(givens: number[]): number[] {
   go();
   return g;
 }
+
+describe('co-op', () => {
+  function startCoop() {
+    const a = new TestConn();
+    const b = new TestConn();
+    lobby.handle(a, { t: 'create', mode: 'coop', difficulty: 'easy', name: 'Ana' });
+    lobby.handle(b, { t: 'join', code: a.welcome.code, name: 'Ben' });
+    vi.advanceTimersByTime(3000);
+    return { a, b };
+  }
+
+  it('applies both players’ moves to one shared board', () => {
+    const { a, b } = startCoop();
+    const [first, second, third] = blanks;
+    lobby.handle(a, { t: 'move', cell: first, digit: puzzle.solution[first] });
+    lobby.handle(b, { t: 'move', cell: second, digit: puzzle.solution[second] });
+    lobby.handle(b, { t: 'move', cell: third, digit: wrongDigit(third) });
+
+    for (const conn of [a, b]) {
+      expect(conn.room.board!.values[first]).toBe(puzzle.solution[first]);
+      expect(conn.room.board!.values[second]).toBe(puzzle.solution[second]);
+      expect(conn.room.board!.wrong).toEqual([third]);
+      expect(conn.room.board!.mistakes).toBe(1);
+    }
+    expect(a.room.players.map((p) => [p.placed, p.mistakes])).toEqual([
+      [1, 0],
+      [1, 1],
+    ]);
+    expect(a.room.players[0].progress).toBe(2 / blanks.length);
+    expect(a.room.players[1].progress).toBe(2 / blanks.length);
+  });
+
+  it('shares pencil marks and cursors, and erases for both', () => {
+    const { a, b } = startCoop();
+    const [cell] = blanks;
+    lobby.handle(a, { t: 'note', cell, digit: 4 });
+    expect(b.room.notes![cell]).toBe(1 << 4);
+    lobby.handle(b, { t: 'erase', cell });
+    expect(a.room.notes![cell]).toBe(0);
+
+    lobby.handle(a, { t: 'cursor', cell: 17 });
+    expect(b.room.players[0].cursor).toBe(17);
+  });
+
+  it('keeps cursors and notes private in races', () => {
+    const { a, b } = startRace();
+    lobby.handle(a, { t: 'cursor', cell: 17 });
+    lobby.handle(a, { t: 'note', cell: blanks[0], digit: 4 });
+    expect(b.room.players[0].cursor).toBeNull();
+    expect(a.room.notes).toBeNull();
+    expect(b.room.notes).toBeNull();
+  });
+
+  it('finishes for everyone together when the board is solved', () => {
+    const { a, b } = startCoop();
+    vi.advanceTimersByTime(42_000);
+    blanks.forEach((cell, i) => lobby.handle(i % 2 ? b : a, { t: 'move', cell, digit: puzzle.solution[cell] }));
+    expect(b.room).toMatchObject({ status: 'finished', winner: null, endReason: 'solved' });
+    expect(b.room.players.map((p) => p.finishedMs)).toEqual([42_000, 42_000]);
+    expect(b.room.players[0].placed + b.room.players[1].placed).toBe(blanks.length);
+  });
+
+  it('lets the remaining player carry on when a partner leaves', () => {
+    const { a, b } = startCoop();
+    lobby.handle(b, { t: 'leave' });
+    expect(a.room.status).toBe('playing');
+    solve(a);
+    expect(a.room).toMatchObject({ status: 'finished', endReason: 'solved' });
+  });
+});

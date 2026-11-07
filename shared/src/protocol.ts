@@ -2,9 +2,12 @@ import { CELLS } from './board';
 import type { PlayerBoard } from './game';
 import { DIFFICULTIES, type Difficulty } from './puzzle';
 
-/** `race`: both players get the same puzzle. `fair-race`: different puzzles of identical difficulty. */
-export type Mode = 'race' | 'fair-race';
-export const MODES: readonly Mode[] = ['race', 'fair-race'];
+/**
+ * `race`: both players get the same puzzle. `fair-race`: different puzzles of identical difficulty.
+ * `coop`: both players fill one shared board, pencil marks included.
+ */
+export type Mode = 'race' | 'fair-race' | 'coop';
+export const MODES: readonly Mode[] = ['race', 'fair-race', 'coop'];
 
 export const MAX_PLAYERS = 2;
 export const MAX_NAME_LENGTH = 20;
@@ -17,9 +20,14 @@ export type RoomStatus = 'waiting' | 'countdown' | 'playing' | 'finished';
 export interface PlayerSummary {
   name: string;
   connected: boolean;
-  /** Correctly filled blanks, 0–1. */
+  /** Correctly filled blanks, 0–1. In co-op this is the shared board's progress. */
   progress: number;
+  /** Wrong digits this player entered. */
   mistakes: number;
+  /** Correct digits this player entered. */
+  placed: number;
+  /** The cell this player has selected; only shared in co-op. */
+  cursor: number | null;
   /** Solve time in ms, once finished. */
   finishedMs: number | null;
   wantsRematch: boolean;
@@ -40,8 +48,11 @@ export interface RoomView {
   serverNow: number;
   /** Increments with every rematch; clients reset local state (notes) when it changes. */
   round: number;
-  /** The receiving player's own board, from the start of play. */
+  /** The receiving player's own board (the shared board in co-op), from the start of play. */
   board: PlayerBoard | null;
+  /** Shared pencil marks in co-op; null in races, where notes stay on each device. */
+  notes: number[] | null;
+  /** Null in co-op, where everyone wins together. */
   winner: number | null;
   endReason: 'solved' | 'forfeit' | null;
 }
@@ -52,6 +63,8 @@ export type ClientMessage =
   | { t: 'resume'; code: string; playerId: string }
   | { t: 'move'; cell: number; digit: number }
   | { t: 'erase'; cell: number }
+  | { t: 'note'; cell: number; digit: number }
+  | { t: 'cursor'; cell: number | null }
   | { t: 'rematch' }
   | { t: 'leave' };
 
@@ -98,6 +111,10 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       return isInt(m.cell, 0, CELLS - 1) && isInt(m.digit, 1, 9) ? { t: 'move', cell: m.cell, digit: m.digit } : null;
     case 'erase':
       return isInt(m.cell, 0, CELLS - 1) ? { t: 'erase', cell: m.cell } : null;
+    case 'note':
+      return isInt(m.cell, 0, CELLS - 1) && isInt(m.digit, 1, 9) ? { t: 'note', cell: m.cell, digit: m.digit } : null;
+    case 'cursor':
+      return m.cell === null || isInt(m.cell, 0, CELLS - 1) ? { t: 'cursor', cell: m.cell } : null;
     case 'rematch':
     case 'leave':
       return { t: m.t };

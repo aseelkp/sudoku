@@ -12,6 +12,7 @@
   --selected: #b9cdf6;
   --wrong: #c8312b;
   --wrong-bg: #fbe3e1;
+  --partner: #d9822b;
   --radius: 10px;
   color-scheme: light;
 }
@@ -676,7 +677,7 @@ input:focus-visible {
 }
 
 .racer:nth-child(2) .fill {
-  background: #d9822b;
+  background: var(--partner);
 }
 
 .countdown {
@@ -742,4 +743,40 @@ input:focus-visible {
 
 .mode-tag {
   font-size: 0.85rem;
+}
+
+/* Co-op */
+
+.team {
+  display: grid;
+  gap: 6px;
+}
+
+.teammates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 0.85rem;
+}
+
+.teammate em {
+  font-style: normal;
+  color: var(--ink-soft);
+}
+
+.swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.swatch.partner {
+  background: var(--partner);
+}
+
+.cell.partner {
+  box-shadow: inset 0 0 0 3px var(--partner);
 }

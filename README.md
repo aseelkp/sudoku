@@ -1,6 +1,11 @@
 # Sudoku
 
-Solo sudoku, plus multiplayer races against a friend: on the same puzzle, or on different puzzles of identical difficulty ("fair race").
+Sudoku for one or two players:
+
+- **Solo**
+- **Race, same puzzle**: first to finish wins
+- **Race, different puzzles**: each player gets their own grid of identical difficulty
+- **Co-op**: one shared board, shared pencil marks, and your partner's cursor
 
 ## Run it
 
@@ -10,7 +15,7 @@ npm run dev     # game server on :8787 + app on http://localhost:5173
 npm test
 ```
 
-To race yourself locally, open the app in two browser tabs (or a normal and a private window), create a room in one, and join with the code in the other.
+To play against yourself locally, open the app in two browser tabs (or a normal and a private window), create a room in one, and join with the code in the other.
 
 ## Layout
 

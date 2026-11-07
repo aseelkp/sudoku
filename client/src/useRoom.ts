@@ -9,8 +9,8 @@ import {
 } from '@sudoku/shared';
 import { stepSelection } from './useBoardKeys';
 
-/** What the race screen should do once connected. */
-export type RaceIntent =
+/** What the room screen should do once connected. */
+export type RoomIntent =
   | { t: 'create'; mode: Mode; difficulty: RoomView['difficulty']; name: string }
   | { t: 'join'; code: string; name: string }
   | { t: 'resume' };
@@ -21,7 +21,7 @@ interface Session {
 }
 
 // Per tab, so two tabs on one machine can be two players, and a reload rejoins the same seat.
-const SESSION_KEY = 'sudoku:race-session';
+const SESSION_KEY = 'sudoku:room-session';
 
 export function loadSession(): Session | null {
   try {
@@ -44,7 +44,7 @@ const socketUrl = () => `${location.protocol === 'https:' ? 'wss' : 'ws'}://${lo
 const emptyNotes = () => new Array<number>(CELLS).fill(0);
 const PENDING_TIMEOUT_MS = 3000;
 
-export function useRace(intent: RaceIntent) {
+export function useRoom(intent: RoomIntent) {
   const [connected, setConnected] = useState(false);
   const [room, setRoom] = useState<RoomView | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +54,8 @@ export function useRace(intent: RaceIntent) {
 
   const [selected, setSelected] = useState<number | null>(null);
   const [notesMode, setNotesMode] = useState(false);
-  const [notes, setNotes] = useState(emptyNotes);
+  /** Private pencil marks for races. Co-op uses the shared notes from the server instead. */
+  const [localNotes, setLocalNotes] = useState(emptyNotes);
   const [pending, setPending] = useState<{ cell: number; digit: number } | null>(null);
   const [wrongMove, setWrongMove] = useState<{ cell: number; id: number } | null>(null);
 
@@ -75,7 +76,7 @@ export function useRace(intent: RaceIntent) {
     setRoom(next);
 
     if (prev?.round !== next.round) {
-      setNotes(emptyNotes());
+      setLocalNotes(emptyNotes());
       setSelected(null);
       setWrongMove(null);
     } else if (prev?.board && next.board) {
@@ -86,7 +87,8 @@ export function useRace(intent: RaceIntent) {
         if (cell !== undefined) setWrongMove((w) => ({ cell, id: (w?.id ?? 0) + 1 }));
       }
       // A newly confirmed digit rules itself out of the peers' pencil marks, as in solo play.
-      setNotes((n) => {
+      // (In co-op the server does this to the shared notes.)
+      setLocalNotes((n) => {
         let out = n;
         for (let cell = 0; cell < CELLS; cell++) {
           const digit = after.values[cell];
@@ -106,7 +108,7 @@ export function useRace(intent: RaceIntent) {
     let stopped = false;
     let attempt = 0;
     let retry: ReturnType<typeof setTimeout>;
-    let firstIntent: RaceIntent | null = intent;
+    let firstIntent: RoomIntent | null = intent;
 
     const connect = () => {
       const socket = new WebSocket(socketUrl());
@@ -172,6 +174,8 @@ export function useRace(intent: RaceIntent) {
   }, [pending]);
 
   const board = room?.board ?? null;
+  const coop = room?.mode === 'coop';
+  const notes = room?.notes ?? localNotes;
   const me = room ? room.players[room.you] : null;
   const canPlay = room?.status === 'playing' && board !== null && me?.finishedMs === null && connected;
   const isLocked = (cell: number) =>
@@ -181,11 +185,15 @@ export function useRace(intent: RaceIntent) {
     if (!canPlay || selected === null || pending || isLocked(selected)) return;
     if (asNote || notesMode) {
       if (board!.values[selected] !== 0) return;
-      setNotes((n) => {
-        const out = [...n];
-        out[selected] ^= 1 << d;
-        return out;
-      });
+      if (coop) {
+        send({ t: 'note', cell: selected, digit: d });
+      } else {
+        setLocalNotes((n) => {
+          const out = [...n];
+          out[selected] ^= 1 << d;
+          return out;
+        });
+      }
       return;
     }
     if (board!.values[selected] === d) return;
@@ -195,15 +203,21 @@ export function useRace(intent: RaceIntent) {
 
   const erase = () => {
     if (!canPlay || selected === null || pending || isLocked(selected)) return;
-    if (board!.values[selected] !== 0) {
+    if (board!.values[selected] !== 0 || (coop && notes[selected])) {
       send({ t: 'erase', cell: selected });
     } else if (notes[selected]) {
-      setNotes((n) => {
+      setLocalNotes((n) => {
         const out = [...n];
         out[selected] = 0;
         return out;
       });
     }
+  };
+
+  const select = (cell: number | null) => {
+    setSelected(cell);
+    // Partners see each other's selection in co-op.
+    if (coop && cell !== selected) send({ t: 'cursor', cell });
   };
 
   const leave = () => {
@@ -224,8 +238,8 @@ export function useRace(intent: RaceIntent) {
     notes,
     pending,
     wrongMove,
-    select: setSelected,
-    move: (dRow: number, dCol: number) => setSelected((s) => stepSelection(s, dRow, dCol)),
+    select,
+    move: (dRow: number, dCol: number) => select(stepSelection(selected, dRow, dCol)),
     toggleNotes: () => setNotesMode((m) => !m),
     digit,
     erase,
