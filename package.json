@@ -1,6 +1,9 @@
 {
   "name": "sudoku",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "workspaces": [
     "client",
     "server",

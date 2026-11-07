@@ -1,0 +1,15 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# One Node service serves the built app and the game WebSocket on the same origin.
+services:
+  - type: web
+    name: sudoku
+    runtime: node
+    plan: free
+    # Build tools (Vite, esbuild) are devDependencies, so include them explicitly.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
