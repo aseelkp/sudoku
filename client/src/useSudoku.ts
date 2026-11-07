@@ -3,15 +3,14 @@ import {
   CELLS,
   type Difficulty,
   type GameState,
-  colOf,
   eraseCell,
   generatePuzzle,
   isSolved,
   newGame,
   placeDigit,
-  rowOf,
   toggleNote,
 } from '@sudoku/shared';
+import { stepSelection } from './useBoardKeys';
 
 interface State {
   game: GameState;
@@ -29,7 +28,7 @@ type Action =
   | { type: 'new'; difficulty: Difficulty }
   | { type: 'select'; cell: number }
   | { type: 'move'; dRow: number; dCol: number }
-  | { type: 'digit'; digit: number; asNote?: boolean }
+  | { type: 'digit'; digit: number; asNote: boolean }
   | { type: 'erase' }
   | { type: 'toggleNotesMode' };
 
@@ -70,12 +69,8 @@ function reducer(state: State, action: Action): State {
     case 'select':
       return { ...state, selected: action.cell };
 
-    case 'move': {
-      const from = selected ?? 40;
-      const row = (rowOf(from) + action.dRow + 9) % 9;
-      const col = (colOf(from) + action.dCol + 9) % 9;
-      return { ...state, selected: selected === null ? from : row * 9 + col };
-    }
+    case 'move':
+      return { ...state, selected: stepSelection(selected, action.dRow, action.dCol) };
 
     case 'toggleNotesMode':
       return { ...state, notesMode: !state.notesMode };
@@ -86,7 +81,7 @@ function reducer(state: State, action: Action): State {
 
     case 'digit': {
       if (selected === null || done) return state;
-      if (action.asNote ?? state.notesMode) {
+      if (action.asNote || state.notesMode) {
         return { ...state, game: toggleNote(game, selected, action.digit) };
       }
       const { state: next, result } = placeDigit(game, selected, action.digit);

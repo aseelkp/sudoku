@@ -1,10 +1,16 @@
 {
   "name": "sudoku",
   "private": true,
-  "workspaces": ["client", "shared"],
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
   "scripts": {
-    "dev": "npm run dev -w client",
+    "dev": "npm run dev -w server & npm run dev -w client",
     "build": "npm run build -w client",
-    "test": "npm test -w shared"
+    "start": "npm start -w server",
+    "test": "npm test -w shared -w server",
+    "typecheck": "npm run typecheck -w shared -w server && npx tsc --noEmit -p client"
   }
 }

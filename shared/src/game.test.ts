@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { eraseCell, hasNote, isSolved, newGame, placeDigit, progress, remaining, toggleNote } from './game';
+import {
+  eraseCell,
+  hasNote,
+  isSolved,
+  newGame,
+  placeDigit,
+  progress,
+  remaining,
+  toPlayerBoard,
+  toggleNote,
+} from './game';
 import { PEERS } from './board';
 import { generatePuzzle } from './puzzle';
 
@@ -23,6 +33,7 @@ describe('game rules', () => {
     const { state, result } = placeDigit(game, blank, wrongDigit);
     expect(result).toBe('wrong');
     expect(state.mistakes).toBe(1);
+    expect(toPlayerBoard(state).wrong).toEqual([blank]);
     expect(eraseCell(state, blank).values[blank]).toBe(0);
   });
 
@@ -30,11 +41,11 @@ describe('game rules', () => {
     const { game, blank, answer } = setup();
     const peer = PEERS[blank].find((p) => game.values[p] === 0)!;
     const noted = toggleNote(game, peer, answer);
-    expect(hasNote(noted, peer, answer)).toBe(true);
+    expect(hasNote(noted.notes, peer, answer)).toBe(true);
 
     const { state, result } = placeDigit(noted, blank, answer);
     expect(result).toBe('correct');
-    expect(hasNote(state, peer, answer)).toBe(false);
+    expect(hasNote(state.notes, peer, answer)).toBe(false);
     expect(placeDigit(state, blank, 1).result).toBe('ignored');
     expect(eraseCell(state, blank)).toBe(state);
   });
@@ -47,6 +58,6 @@ describe('game rules', () => {
     });
     expect(isSolved(game)).toBe(true);
     expect(progress(game)).toBe(1);
-    expect(remaining(game, 5)).toBe(0);
+    expect(remaining(toPlayerBoard(game), 5)).toBe(0);
   });
 });

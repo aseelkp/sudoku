@@ -12,6 +12,28 @@ export interface GameState {
 
 export type MoveResult = 'correct' | 'wrong' | 'ignored';
 
+/** What a player may see of their own board: everything except the solution. */
+export interface PlayerBoard {
+  givens: number[];
+  values: number[];
+  /** Cells holding a wrong digit. */
+  wrong: number[];
+  mistakes: number;
+}
+
+export function toPlayerBoard(s: GameState): PlayerBoard {
+  const wrong: number[] = [];
+  for (let cell = 0; cell < CELLS; cell++) if (isWrong(s, cell)) wrong.push(cell);
+  return { givens: s.puzzle.givens, values: s.values, wrong, mistakes: s.mistakes };
+}
+
+/** Removes `digit` from the pencil marks of every peer of `cell`. */
+export function clearPeerNotes(notes: number[], cell: number, digit: number): number[] {
+  const next = [...notes];
+  for (const p of PEERS[cell]) next[p] &= ~(1 << digit);
+  return next;
+}
+
 export function newGame(puzzle: Puzzle): GameState {
   return { puzzle, values: [...puzzle.givens], notes: new Array(CELLS).fill(0), mistakes: 0 };
 }
@@ -22,19 +44,19 @@ export const isWrong = (s: GameState, cell: number) =>
 /** Givens and correct entries can no longer be changed. */
 export const isLocked = (s: GameState, cell: number) =>
   s.values[cell] !== 0 && s.values[cell] === s.puzzle.solution[cell];
-export const hasNote = (s: GameState, cell: number, digit: number) => (s.notes[cell] & (1 << digit)) !== 0;
+export const hasNote = (notes: readonly number[], cell: number, digit: number) => (notes[cell] & (1 << digit)) !== 0;
 
 export function placeDigit(s: GameState, cell: number, digit: number): { state: GameState; result: MoveResult } {
   if (isLocked(s, cell) || s.values[cell] === digit) return { state: s, result: 'ignored' };
 
   const values = [...s.values];
-  const notes = [...s.notes];
+  let notes = [...s.notes];
   values[cell] = digit;
   notes[cell] = 0;
 
   if (digit === s.puzzle.solution[cell]) {
     // A correct digit rules itself out of every peer's pencil marks.
-    for (const p of PEERS[cell]) notes[p] &= ~(1 << digit);
+    notes = clearPeerNotes(notes, cell, digit);
     return { state: { ...s, values, notes }, result: 'correct' };
   }
   return { state: { ...s, values, notes, mistakes: s.mistakes + 1 }, result: 'wrong' };
@@ -75,5 +97,5 @@ export function progress(s: GameState): number {
 }
 
 /** How many more times `digit` still has to be placed. */
-export const remaining = (s: GameState, digit: number) =>
-  9 - s.values.filter((d, cell) => d === digit && d === s.puzzle.solution[cell]).length;
+export const remaining = (b: PlayerBoard, digit: number) =>
+  9 - b.values.filter((d, cell) => d === digit && !b.wrong.includes(cell)).length;
