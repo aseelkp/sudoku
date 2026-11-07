@@ -45,4 +45,6 @@ Optional environment variables: `ALLOWED_ORIGINS` (extra origins allowed to open
 - `npm run check`: lint, format check, typecheck and unit tests.
 - `npm run test:e2e`: Playwright tests that build the app, start the production server, and play every mode with two browsers. Needs a browser: `npx playwright install chromium` once, or `PW_CHANNEL=chrome npm run test:e2e` to use an installed Chrome.
 
+To test a deployed site: `BASE_URL=https://your-app.onrender.com npm run test:e2e`.
+
 CI runs both on every push (unit checks on Node 24 and 26).
