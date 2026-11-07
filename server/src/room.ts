@@ -37,6 +37,8 @@ export interface Room {
   players: Player[];
   /** The one board everybody fills in co-op. */
   shared: GameState | null;
+  /** Co-op: the id of the player who wrote each cell's digit, null for givens and empty cells. */
+  writtenBy: (string | null)[] | null;
   startAt: number | null;
   round: number;
   winner: number | null;
@@ -54,6 +56,7 @@ export function newRoom(code: string, mode: Mode, difficulty: Difficulty): Room 
     status: 'waiting',
     players: [],
     shared: null,
+    writtenBy: null,
     startAt: null,
     round: 0,
     winner: null,

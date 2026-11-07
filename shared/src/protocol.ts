@@ -52,10 +52,15 @@ export interface RoomView {
   board: PlayerBoard | null;
   /** Shared pencil marks in co-op; null in races, where notes stay on each device. */
   notes: number[] | null;
+  /** Co-op: who wrote each cell's digit, relative to the receiver. Null in races. */
+  writtenBy: Writer[] | null;
   /** Null in co-op, where everyone wins together. */
   winner: number | null;
   endReason: 'solved' | 'forfeit' | null;
 }
+
+/** 0: nobody (a given or an empty cell), 1: the receiving player, 2: their partner. */
+export type Writer = 0 | 1 | 2;
 
 export type ClientMessage =
   | { t: 'create'; mode: Mode; difficulty: Difficulty; name: string }

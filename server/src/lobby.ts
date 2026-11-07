@@ -157,6 +157,7 @@ export class Lobby {
     let game = boardOf(room, player);
     if (room.status !== 'playing' || !game || player.finishedMs !== null) return;
 
+    const before = game;
     if (msg.t === 'erase') {
       game = eraseCell(game, msg.cell);
     } else if (msg.t === 'note') {
@@ -170,8 +171,15 @@ export class Lobby {
       if (result === 'wrong') player.mistakes++;
     }
 
-    if (coop) room.shared = game;
-    else player.game = game;
+    if (coop) {
+      room.shared = game;
+      // Remember whose handwriting each digit is in; an erased cell belongs to nobody.
+      if (room.writtenBy && game.values[msg.cell] !== before.values[msg.cell]) {
+        room.writtenBy[msg.cell] = game.values[msg.cell] ? player.id : null;
+      }
+    } else {
+      player.game = game;
+    }
 
     if (msg.t === 'move' && isSolved(game)) {
       const ms = Date.now() - room.startAt!;
@@ -231,6 +239,7 @@ export class Lobby {
     const puzzle = this.generate(room.difficulty);
     if (room.mode === 'coop') {
       room.shared = newGame(puzzle);
+      room.writtenBy = new Array<string | null>(puzzle.givens.length).fill(null);
     } else {
       for (const p of room.players) p.game = newGame(room.mode === 'fair-race' ? scramblePuzzle(puzzle) : puzzle);
     }
@@ -243,6 +252,7 @@ export class Lobby {
     room.timer = null;
     room.status = status;
     room.shared = null;
+    room.writtenBy = null;
     room.startAt = null;
     room.winner = null;
     room.endReason = null;

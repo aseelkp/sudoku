@@ -325,6 +325,26 @@ describe('co-op', () => {
     expect(a.room.players[1].progress).toBe(2 / blanks.length);
   });
 
+  it('tells each player whose handwriting every digit is in', () => {
+    const { a, b } = startCoop();
+    const [first, second, third] = blanks;
+    lobby.handle(a, { t: 'move', cell: first, digit: puzzle.solution[first] });
+    lobby.handle(b, { t: 'move', cell: second, digit: puzzle.solution[second] });
+    lobby.handle(b, { t: 'move', cell: third, digit: wrongDigit(third) });
+
+    expect([first, second, third].map((c) => a.room.writtenBy![c])).toEqual([1, 2, 2]);
+    expect([first, second, third].map((c) => b.room.writtenBy![c])).toEqual([2, 1, 1]);
+    expect(a.room.writtenBy![puzzle.givens.findIndex(Boolean)]).toBe(0);
+
+    // Ana erases Ben's mistake: the cell belongs to nobody again.
+    lobby.handle(a, { t: 'erase', cell: third });
+    expect(b.room.writtenBy![third]).toBe(0);
+    // Overwriting a wrong digit hands the cell to whoever wrote last.
+    lobby.handle(b, { t: 'move', cell: third, digit: wrongDigit(third) });
+    lobby.handle(a, { t: 'move', cell: third, digit: puzzle.solution[third] });
+    expect(b.room.writtenBy![third]).toBe(2);
+  });
+
   it('shares pencil marks and cursors, and erases for both', () => {
     const { a, b } = startCoop();
     const [cell] = blanks;

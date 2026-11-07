@@ -44,6 +44,7 @@ describe('toRoomView', () => {
     const view = toRoomView(room, 0, 0);
     expect(view.players[1].cursor).toBeNull();
     expect(view.notes).toBeNull();
+    expect(view.writtenBy).toBeNull();
   });
 
   it('shares the board, notes and cursors in co-op', () => {

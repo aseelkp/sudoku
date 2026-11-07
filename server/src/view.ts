@@ -1,4 +1,4 @@
-import { type RoomView, progress, toPlayerBoard } from '@sudoku/shared';
+import { type RoomView, type Writer, progress, toPlayerBoard } from '@sudoku/shared';
 import { type Room, boardOf } from './room';
 
 /**
@@ -34,6 +34,10 @@ export function toRoomView(room: Room, you: number, serverNow: number): RoomView
     round: room.round,
     board: myBoard ? toPlayerBoard(myBoard) : null,
     notes: coop && room.shared ? room.shared.notes : null,
+    writtenBy:
+      coop && room.writtenBy
+        ? room.writtenBy.map((id): Writer => (id === null ? 0 : id === room.players[you].id ? 1 : 2))
+        : null,
     winner: room.winner,
     endReason: room.endReason,
   };
