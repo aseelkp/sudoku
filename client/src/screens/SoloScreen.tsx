@@ -25,7 +25,11 @@ export function SoloScreen({ onHome }: { onHome: () => void }) {
           ← Sudoku
         </button>
         <div className="new-game">
-          <select aria-label="Difficulty" value={difficulty} onChange={(e) => setDifficulty(e.target.value as Difficulty)}>
+          <select
+            aria-label="Difficulty"
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+          >
             {DIFFICULTIES.map((d) => (
               <option key={d} value={d}>
                 {d[0].toUpperCase() + d.slice(1)}

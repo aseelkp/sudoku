@@ -44,7 +44,12 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 15px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font:
+    15px/1.4 system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -212,8 +217,12 @@ input,
 }
 
 @keyframes shake {
-  25% { transform: translateX(-3px); }
-  75% { transform: translateX(3px); }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -326,7 +335,9 @@ kbd {
   padding: 1px 5px;
   border: 1px solid var(--line);
   border-radius: 4px;
-  font: 0.75rem ui-monospace, monospace;
+  font:
+    0.75rem ui-monospace,
+    monospace;
   color: var(--ink-soft);
 }
 
@@ -524,7 +535,11 @@ input:focus-visible {
 .code-input {
   height: 68px;
   text-align: center;
-  font: 600 1.3rem ui-monospace, 'SF Mono', Menlo, monospace;
+  font:
+    600 1.3rem ui-monospace,
+    'SF Mono',
+    Menlo,
+    monospace;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
@@ -574,7 +589,11 @@ input:focus-visible {
 }
 
 .big-code {
-  font: 700 2.6rem ui-monospace, 'SF Mono', Menlo, monospace;
+  font:
+    700 2.6rem ui-monospace,
+    'SF Mono',
+    Menlo,
+    monospace;
   letter-spacing: 0.18em;
   padding-left: 0.18em;
 }
@@ -614,8 +633,13 @@ input:focus-visible {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .racers {

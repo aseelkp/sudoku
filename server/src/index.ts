@@ -31,7 +31,9 @@ const http = createServer((req, res) => {
     return;
   }
   if (!existsSync(CLIENT_DIST)) {
-    res.writeHead(404, { 'content-type': 'text/plain' }).end('Client not built. In development, use the Vite dev server.');
+    res
+      .writeHead(404, { 'content-type': 'text/plain' })
+      .end('Client not built. In development, use the Vite dev server.');
     return;
   }
   let file = join(CLIENT_DIST, normalize(path));
@@ -79,4 +81,4 @@ setInterval(() => {
   lobby.sweep();
 }, HEARTBEAT_MS);
 
-http.listen(PORT, () => console.log(`sudoku server listening on :${PORT}`));
+http.listen(PORT, () => console.info(`sudoku server listening on :${PORT}`));

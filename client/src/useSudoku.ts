@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer } from 'react';
 import {
   CELLS,
   type Difficulty,
@@ -11,6 +11,7 @@ import {
   toggleNote,
 } from '@sudoku/shared';
 import { stepSelection } from './useBoardKeys';
+import { useNow } from './useNow';
 
 interface State {
   game: GameState;
@@ -95,13 +96,7 @@ function reducer(state: State, action: Action): State {
 
 export function useSudoku() {
   const [state, dispatch] = useReducer(reducer, undefined, load);
-  const [now, setNow] = useState(Date.now);
-
-  useEffect(() => {
-    if (state.finishedMs !== null) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [state.finishedMs]);
+  const now = useNow(1000, state.finishedMs === null);
 
   useEffect(() => {
     try {

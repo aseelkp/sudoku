@@ -61,8 +61,6 @@ export function useRoom(intent: RoomIntent) {
 
   const socketRef = useRef<WebSocket | null>(null);
   const roomRef = useRef<RoomView | null>(null);
-  const pendingRef = useRef(pending);
-  pendingRef.current = pending;
 
   const send = useCallback((msg: ClientMessage) => {
     const socket = socketRef.current;
@@ -83,7 +81,8 @@ export function useRoom(intent: RoomIntent) {
       const before = prev.board;
       const after = next.board;
       if (after.mistakes > before.mistakes) {
-        const cell = after.wrong.find((c) => !before.wrong.includes(c)) ?? pendingRef.current?.cell;
+        // The cell that just changed to a wrong digit (possibly replacing another wrong digit).
+        const cell = after.wrong.find((c) => after.values[c] !== before.values[c]);
         if (cell !== undefined) setWrongMove((w) => ({ cell, id: (w?.id ?? 0) + 1 }));
       }
       // A newly confirmed digit rules itself out of the peers' pencil marks, as in solo play.

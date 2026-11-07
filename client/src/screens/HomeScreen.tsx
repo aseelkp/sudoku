@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { DIFFICULTIES, type Difficulty, MAX_NAME_LENGTH, type Mode, ROOM_CODE_LENGTH, normalizeCode, normalizeName } from '@sudoku/shared';
+import {
+  DIFFICULTIES,
+  type Difficulty,
+  MAX_NAME_LENGTH,
+  type Mode,
+  ROOM_CODE_LENGTH,
+  normalizeCode,
+  normalizeName,
+} from '@sudoku/shared';
 import type { RoomIntent } from '../useRoom';
 
 const NAME_KEY = 'sudoku:name';
@@ -79,7 +87,9 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
               setNameMissing(false);
             }}
           />
-          {nameMissing && <small className="error-text">Enter a name so your friend knows who they’re playing with.</small>}
+          {nameMissing && (
+            <small className="error-text">Enter a name so your friend knows who they’re playing with.</small>
+          )}
         </label>
 
         <div className="split">
@@ -129,7 +139,8 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
             className="option"
             onSubmit={(e) => {
               e.preventDefault();
-              if (cleanCode.length === ROOM_CODE_LENGTH) withName((n) => onRace({ t: 'join', code: cleanCode, name: n }));
+              if (cleanCode.length === ROOM_CODE_LENGTH)
+                withName((n) => onRace({ t: 'join', code: cleanCode, name: n }));
             }}
           >
             <h3>Join a game</h3>

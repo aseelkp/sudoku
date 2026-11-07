@@ -16,7 +16,13 @@ export function NumberPad({ board, notesMode, disabled, onDigit, onErase, onTogg
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => {
           const left = remaining(board, d);
           return (
-            <button key={d} type="button" className="digit" disabled={disabled || left === 0} onClick={() => onDigit(d)}>
+            <button
+              key={d}
+              type="button"
+              className="digit"
+              disabled={disabled || left === 0}
+              onClick={() => onDigit(d)}
+            >
               {d}
               <small>{left || ''}</small>
             </button>

@@ -264,7 +264,8 @@ function solveGrid(givens: number[]): number[] {
     const br = r - (r % 3);
     const bc = c - (c % 3);
     for (let k = 0; k < 9; k++) {
-      if (g[r * 9 + k] === d || g[k * 9 + c] === d || g[(br + Math.floor(k / 3)) * 9 + bc + (k % 3)] === d) return false;
+      if (g[r * 9 + k] === d || g[k * 9 + c] === d || g[(br + Math.floor(k / 3)) * 9 + bc + (k % 3)] === d)
+        return false;
     }
     return true;
   };

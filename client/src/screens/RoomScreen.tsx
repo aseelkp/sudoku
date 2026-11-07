@@ -4,6 +4,7 @@ import { Board } from '../components/Board';
 import { NumberPad } from '../components/NumberPad';
 import { formatTime } from '../time';
 import { useBoardKeys } from '../useBoardKeys';
+import { useNow } from '../useNow';
 import { type RoomIntent, useRoom } from '../useRoom';
 
 interface Props {
@@ -15,19 +16,12 @@ interface Props {
 export function RoomScreen({ intent, onExit, onRoomCode }: Props) {
   const race = useRoom(intent);
   const { room, board, clockOffset } = race;
-  const [, tick] = useState(0);
+  const now = useNow(250, room?.status === 'countdown' || room?.status === 'playing');
 
-  // Re-render a few times a second while the clock is running.
-  const live = room?.status === 'countdown' || room?.status === 'playing';
+  const code = room?.code;
   useEffect(() => {
-    if (!live) return;
-    const id = setInterval(() => tick((n) => n + 1), 250);
-    return () => clearInterval(id);
-  }, [live]);
-
-  useEffect(() => {
-    if (room) onRoomCode(room.code);
-  }, [room?.code, onRoomCode]);
+    if (code) onRoomCode(code);
+  }, [code, onRoomCode]);
 
   useBoardKeys(
     { digit: race.digit, move: race.move, erase: race.erase, toggleNotes: race.toggleNotes },
@@ -56,7 +50,7 @@ export function RoomScreen({ intent, onExit, onRoomCode }: Props) {
     );
   }
 
-  const serverNow = Date.now() + clockOffset;
+  const serverNow = now + clockOffset;
   const me = room.players[room.you];
   const opponent = room.players.find((_, i) => i !== room.you) ?? null;
   const elapsed = room.startAt ? serverNow - room.startAt : 0;
@@ -91,7 +85,11 @@ export function RoomScreen({ intent, onExit, onRoomCode }: Props) {
           ) : (
             <div className="racers">
               <Racer player={me} label="You" />
-              {opponent ? <Racer player={opponent} label={opponent.name} /> : <div className="racer gone">Opponent left</div>}
+              {opponent ? (
+                <Racer player={opponent} label={opponent.name} />
+              ) : (
+                <div className="racer gone">Opponent left</div>
+              )}
             </div>
           )}
 
@@ -203,7 +201,14 @@ function Racer({ player, label }: { player: PlayerSummary; label: string }) {
           {player.mistakes > 0 && <span className="mistakes has"> · {player.mistakes}✕</span>}
         </span>
       </div>
-      <div className="track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${label} progress`}>
+      <div
+        className="track"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${label} progress`}
+      >
         <div className="fill" style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -217,12 +222,23 @@ function Team({ me, partner }: { me: PlayerSummary; partner: PlayerSummary | nul
       <div className="racer-head">
         <span className="racer-name">Board {pct}% done</span>
       </div>
-      <div className="track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Board progress">
+      <div
+        className="track"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Board progress"
+      >
         <div className="fill" style={{ width: `${pct}%` }} />
       </div>
       <div className="teammates">
         <Teammate player={me} label="You" />
-        {partner ? <Teammate player={partner} label={partner.name} partner /> : <span className="muted">Partner left · keep going</span>}
+        {partner ? (
+          <Teammate player={partner} label={partner.name} partner />
+        ) : (
+          <span className="muted">Partner left · keep going</span>
+        )}
       </div>
     </div>
   );
