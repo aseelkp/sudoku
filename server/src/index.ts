@@ -1,4 +1,4 @@
-import { createServer } from 'node:http';
+import { type IncomingMessage, createServer } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import { parseClientMessage } from '@sudoku/shared';
 import { config } from './config';
@@ -32,7 +32,8 @@ const wss = new WebSocketServer({
   server: http,
   path: '/ws',
   maxPayload: config.maxMessageBytes,
-  verifyClient: ({ origin, req }) => originAllowed(origin, req.headers.host),
+  verifyClient: ({ origin, req }: { origin: string | undefined; req: IncomingMessage }) =>
+    originAllowed(origin, req.headers.host),
 });
 const alive = new WeakMap<WebSocket, boolean>();
 
