@@ -1,63 +1,25 @@
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomInt } from 'node:crypto';
 import {
   type ClientMessage,
   type Difficulty,
-  type GameState,
   MAX_PLAYERS,
   type Mode,
   type Puzzle,
   ROOM_CODE_ALPHABET,
   ROOM_CODE_LENGTH,
   type RoomStatus,
-  type RoomView,
-  type ServerMessage,
   eraseCell,
   generatePuzzle,
   isSolved,
   newGame,
   placeDigit,
-  progress,
   scramblePuzzle,
-  toPlayerBoard,
   toggleNote,
 } from '@sudoku/shared';
+import { type Connection, type Player, type Room, boardOf, newPlayer, newRoom } from './room';
+import { toRoomView } from './view';
 
-/** One open socket. A player keeps their seat across reconnects; connections come and go. */
-export interface Connection {
-  send(msg: ServerMessage): void;
-  /** Set once the connection has created, joined or resumed a room. */
-  seat?: { code: string; playerId: string };
-}
-
-interface Player {
-  id: string;
-  name: string;
-  conn: Connection | null;
-  /** This player's own board in races. Unused in co-op, which plays on `room.shared`. */
-  game: GameState | null;
-  finishedMs: number | null;
-  wantsRematch: boolean;
-  placed: number;
-  mistakes: number;
-  cursor: number | null;
-}
-
-interface Room {
-  code: string;
-  mode: Mode;
-  difficulty: Difficulty;
-  status: RoomStatus;
-  players: Player[];
-  /** The one board everybody fills in co-op. */
-  shared: GameState | null;
-  startAt: number | null;
-  round: number;
-  winner: number | null;
-  endReason: RoomView['endReason'];
-  timer: ReturnType<typeof setTimeout> | null;
-  /** When the last player disconnected, for cleanup. */
-  emptySince: number | null;
-}
+export type { Connection } from './room';
 
 export interface LobbyOptions {
   countdownMs?: number;
@@ -131,20 +93,7 @@ export class Lobby {
 
   private create(conn: Connection, mode: Mode, difficulty: Difficulty, name: string) {
     this.unseat(conn);
-    const room: Room = {
-      code: this.newCode(),
-      mode,
-      difficulty,
-      status: 'waiting',
-      players: [],
-      shared: null,
-      startAt: null,
-      round: 0,
-      winner: null,
-      endReason: null,
-      timer: null,
-      emptySince: null,
-    };
+    const room = newRoom(this.newCode(), mode, difficulty);
     this.rooms.set(room.code, room);
     this.seat(conn, room, name);
   }
@@ -176,17 +125,7 @@ export class Lobby {
   }
 
   private seat(conn: Connection, room: Room, name: string) {
-    const player: Player = {
-      id: randomBytes(16).toString('base64url'),
-      name,
-      conn,
-      game: null,
-      finishedMs: null,
-      wantsRematch: false,
-      placed: 0,
-      mistakes: 0,
-      cursor: null,
-    };
+    const player = newPlayer(name, conn);
     room.players.push(player);
     room.emptySince = null;
     conn.seat = { code: room.code, playerId: player.id };
@@ -208,7 +147,7 @@ export class Lobby {
     msg: Extract<ClientMessage, { t: 'move' | 'erase' | 'note' }>,
   ) {
     const coop = room.mode === 'coop';
-    let game = coop ? room.shared : player.game;
+    let game = boardOf(room, player);
     if (room.status !== 'playing' || !game || player.finishedMs !== null) return;
 
     if (msg.t === 'erase') {
@@ -320,37 +259,7 @@ export class Lobby {
 
   private broadcast(room: Room) {
     const serverNow = Date.now();
-    room.players.forEach((p, you) => p.conn?.send({ t: 'room', room: this.view(room, you, serverNow) }));
-  }
-
-  private view(room: Room, you: number, serverNow: number): RoomView {
-    const me = room.players[you];
-    const coop = room.mode === 'coop';
-    const myGame = coop ? room.shared : me.game;
-    return {
-      code: room.code,
-      mode: room.mode,
-      difficulty: room.difficulty,
-      status: room.status,
-      you,
-      players: room.players.map((p) => ({
-        name: p.name,
-        connected: p.conn !== null,
-        progress: coop ? (room.shared ? progress(room.shared) : 0) : p.game ? progress(p.game) : 0,
-        mistakes: p.mistakes,
-        placed: p.placed,
-        cursor: coop ? p.cursor : null,
-        finishedMs: p.finishedMs,
-        wantsRematch: p.wantsRematch,
-      })),
-      startAt: room.startAt,
-      serverNow,
-      round: room.round,
-      board: myGame ? toPlayerBoard(myGame) : null,
-      notes: coop && room.shared ? room.shared.notes : null,
-      winner: room.winner,
-      endReason: room.endReason,
-    };
+    room.players.forEach((p, you) => p.conn?.send({ t: 'room', room: toRoomView(room, you, serverNow) }));
   }
 
   private seatOf(conn: Connection) {

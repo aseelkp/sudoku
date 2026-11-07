@@ -4,7 +4,7 @@ import { extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocket, WebSocketServer } from 'ws';
 import { parseClientMessage } from '@sudoku/shared';
-import { type Connection, Lobby } from './rooms';
+import { type Connection, Lobby } from './lobby';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HEARTBEAT_MS = 25_000;

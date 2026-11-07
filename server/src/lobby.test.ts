@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type Puzzle, type RoomView, type ServerMessage, generatePuzzle } from '@sudoku/shared';
-import { type Connection, Lobby } from './rooms';
+import { type Connection, Lobby } from './lobby';
 
 const puzzle: Puzzle = generatePuzzle('easy');
 
