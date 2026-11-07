@@ -15,7 +15,7 @@ interface Props {
 
 export function RoomScreen({ intent, onExit, onRoomCode }: Props) {
   const race = useRoom(intent);
-  const { room, board, clockOffset } = race;
+  const { room, board, receivedAt } = race;
   const now = useNow(250, room?.status === 'countdown' || room?.status === 'playing');
 
   const code = room?.code;
@@ -50,7 +50,9 @@ export function RoomScreen({ intent, onExit, onRoomCode }: Props) {
     );
   }
 
-  const serverNow = now + clockOffset;
+  // Server time now: the last snapshot's clock plus local time since it arrived. `now` is quantized to the
+  // tick, so clamp at zero rather than ever running the clock backwards past what the server told us.
+  const serverNow = room.serverNow + Math.max(0, now - receivedAt);
   const me = room.players[room.you];
   const opponent = room.players.find((_, i) => i !== room.you) ?? null;
   const elapsed = room.startAt ? serverNow - room.startAt : 0;

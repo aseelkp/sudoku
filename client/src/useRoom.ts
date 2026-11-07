@@ -50,7 +50,8 @@ export function useRoom(intent: RoomIntent) {
   const [error, setError] = useState<string | null>(null);
   /** Fatal: the seat is gone and the screen should offer a way home. */
   const [ended, setEnded] = useState(false);
-  const [clockOffset, setClockOffset] = useState(0);
+  /** Local time the latest room snapshot arrived, to advance its `serverNow` between messages. */
+  const [receivedAt, setReceivedAt] = useState(0);
 
   const [selected, setSelected] = useState<number | null>(null);
   const [notesMode, setNotesMode] = useState(false);
@@ -70,7 +71,7 @@ export function useRoom(intent: RoomIntent) {
   const onRoom = useCallback((next: RoomView) => {
     const prev = roomRef.current;
     roomRef.current = next;
-    setClockOffset(next.serverNow - Date.now());
+    setReceivedAt(Date.now());
     setRoom(next);
 
     if (prev?.round !== next.round) {
@@ -229,7 +230,7 @@ export function useRoom(intent: RoomIntent) {
     room,
     error,
     ended,
-    clockOffset,
+    receivedAt,
     board,
     canPlay,
     selected,
