@@ -203,3 +203,83 @@ describe('connections', () => {
     expect(lobby.roomCount).toBe(0);
   });
 });
+
+describe('fair race', () => {
+  function startFairRace() {
+    const a = new TestConn();
+    const b = new TestConn();
+    lobby.handle(a, { t: 'create', mode: 'fair-race', difficulty: 'easy', name: 'Ana' });
+    lobby.handle(b, { t: 'join', code: a.welcome.code, name: 'Ben' });
+    vi.advanceTimersByTime(3000);
+    return { a, b };
+  }
+
+  it('deals each player a different board with the same number of clues', () => {
+    const { a, b } = startFairRace();
+    expect(a.room.mode).toBe('fair-race');
+    const ga = a.room.board!.givens;
+    const gb = b.room.board!.givens;
+    expect(ga).not.toEqual(gb);
+    expect(ga.filter(Boolean)).toHaveLength(puzzle.givens.filter(Boolean).length);
+    expect(gb.filter(Boolean)).toHaveLength(puzzle.givens.filter(Boolean).length);
+  });
+
+  it('checks each player against their own solution', () => {
+    const { a, b } = startFairRace();
+    // Ana's board is valid only against her own solution; solve it by brute force from what she was sent.
+    const solved = solveGrid(a.room.board!.givens);
+    for (let cell = 0; cell < 81; cell++) {
+      if (a.room.board!.givens[cell] === 0) lobby.handle(a, { t: 'move', cell, digit: solved[cell] });
+    }
+    expect(a.room).toMatchObject({ status: 'finished', winner: 0, endReason: 'solved' });
+    expect(a.room.board!.mistakes).toBe(0);
+    expect(b.room.players[0].progress).toBe(1);
+  });
+
+  it('gives fresh, different boards again after a rematch', () => {
+    const { a, b } = startFairRace();
+    const first = a.room.board!.givens;
+    solveAll(a);
+    lobby.handle(a, { t: 'rematch' });
+    lobby.handle(b, { t: 'rematch' });
+    vi.advanceTimersByTime(3000);
+    expect(a.room.board!.givens).not.toEqual(first);
+    expect(a.room.board!.givens).not.toEqual(b.room.board!.givens);
+  });
+
+  function solveAll(conn: TestConn) {
+    const solved = solveGrid(conn.room.board!.givens);
+    for (let cell = 0; cell < 81; cell++) {
+      if (conn.room.board!.givens[cell] === 0) lobby.handle(conn, { t: 'move', cell, digit: solved[cell] });
+    }
+  }
+});
+
+/** Minimal backtracking solver, so tests only use what a client could see. */
+function solveGrid(givens: number[]): number[] {
+  const g = [...givens];
+  const ok = (i: number, d: number) => {
+    const r = Math.floor(i / 9);
+    const c = i % 9;
+    const br = r - (r % 3);
+    const bc = c - (c % 3);
+    for (let k = 0; k < 9; k++) {
+      if (g[r * 9 + k] === d || g[k * 9 + c] === d || g[(br + Math.floor(k / 3)) * 9 + bc + (k % 3)] === d) return false;
+    }
+    return true;
+  };
+  const go = (): boolean => {
+    const i = g.indexOf(0);
+    if (i < 0) return true;
+    for (let d = 1; d <= 9; d++) {
+      if (ok(i, d)) {
+        g[i] = d;
+        if (go()) return true;
+      }
+    }
+    g[i] = 0;
+    return false;
+  };
+  go();
+  return g;
+}

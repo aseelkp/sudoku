@@ -1,8 +1,13 @@
 import { useState } from 'react';
-import { DIFFICULTIES, type Difficulty, MAX_NAME_LENGTH, ROOM_CODE_LENGTH, normalizeCode, normalizeName } from '@sudoku/shared';
+import { DIFFICULTIES, type Difficulty, MAX_NAME_LENGTH, type Mode, ROOM_CODE_LENGTH, normalizeCode, normalizeName } from '@sudoku/shared';
 import type { RaceIntent } from '../useRace';
 
 const NAME_KEY = 'sudoku:name';
+
+const MODE_OPTIONS: { mode: Mode; title: string; detail: string }[] = [
+  { mode: 'race', title: 'Same puzzle', detail: 'Both solve the identical grid' },
+  { mode: 'fair-race', title: 'Different puzzles', detail: 'Unique grids, equally hard' },
+];
 
 function loadName() {
   try {
@@ -21,6 +26,7 @@ interface Props {
 export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
   const [name, setName] = useState(loadName);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [mode, setMode] = useState<Mode>('race');
   const [code, setCode] = useState(initialCode);
   const [nameMissing, setNameMissing] = useState(false);
 
@@ -46,7 +52,7 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
     <div className="home">
       <header className="hero">
         <h1>Sudoku</h1>
-        <p>Play alone, or race a friend on the same puzzle.</p>
+        <p>Play alone, or race a friend.</p>
       </header>
 
       <section className="card">
@@ -80,10 +86,25 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
             className="option"
             onSubmit={(e) => {
               e.preventDefault();
-              withName((n) => onRace({ t: 'create', difficulty, name: n }));
+              withName((n) => onRace({ t: 'create', mode, difficulty, name: n }));
             }}
           >
             <h3>Start a race</h3>
+            <div className="modes" role="radiogroup" aria-label="Race type">
+              {MODE_OPTIONS.map((m) => (
+                <button
+                  key={m.mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={m.mode === mode}
+                  className={m.mode === mode ? 'mode on' : 'mode'}
+                  onClick={() => setMode(m.mode)}
+                >
+                  <strong>{m.title}</strong>
+                  <span>{m.detail}</span>
+                </button>
+              ))}
+            </div>
             <div className="segmented" role="radiogroup" aria-label="Difficulty">
               {DIFFICULTIES.map((d) => (
                 <button

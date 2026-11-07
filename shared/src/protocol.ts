@@ -2,8 +2,9 @@ import { CELLS } from './board';
 import type { PlayerBoard } from './game';
 import { DIFFICULTIES, type Difficulty } from './puzzle';
 
-export type Mode = 'race';
-export const MODES: readonly Mode[] = ['race'];
+/** `race`: both players get the same puzzle. `fair-race`: different puzzles of identical difficulty. */
+export type Mode = 'race' | 'fair-race';
+export const MODES: readonly Mode[] = ['race', 'fair-race'];
 
 export const MAX_PLAYERS = 2;
 export const MAX_NAME_LENGTH = 20;

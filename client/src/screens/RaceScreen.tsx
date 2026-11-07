@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { PlayerSummary, RoomView } from '@sudoku/shared';
+import type { Mode, PlayerSummary, RoomView } from '@sudoku/shared';
 import { Board } from '../components/Board';
 import { NumberPad } from '../components/NumberPad';
 import { formatTime } from '../time';
@@ -83,7 +83,7 @@ export function RaceScreen({ intent, onExit, onRoomCode }: Props) {
       )}
 
       {room.status === 'waiting' ? (
-        <Waiting code={room.code} />
+        <Waiting code={room.code} mode={room.mode} difficulty={room.difficulty} />
       ) : (
         <>
           <div className="racers">
@@ -93,6 +93,7 @@ export function RaceScreen({ intent, onExit, onRoomCode }: Props) {
 
           <div className="stats">
             <span className="badge">{room.difficulty}</span>
+            <span className="mode-tag">{MODE_LABEL[room.mode]}</span>
             <span className={me.mistakes ? 'mistakes has' : 'mistakes'}>Mistakes: {me.mistakes}</span>
             <span className="timer" aria-label="Time">
               {formatTime(me.finishedMs ?? (room.status === 'playing' ? elapsed : finishedElapsed(room)))}
@@ -143,13 +144,18 @@ function finishedElapsed(room: RoomView) {
   return room.winner !== null ? (room.players[room.winner]?.finishedMs ?? 0) : 0;
 }
 
-function Waiting({ code }: { code: string }) {
+const MODE_LABEL: Record<Mode, string> = { race: 'Same puzzle', 'fair-race': 'Different puzzles' };
+
+function Waiting({ code, mode, difficulty }: { code: string; mode: Mode; difficulty: RoomView['difficulty'] }) {
   const [copied, setCopied] = useState(false);
   const link = `${location.origin}/?room=${code}`;
 
   return (
     <div className="card waiting">
       <h2>Waiting for an opponent</h2>
+      <p className="muted">
+        <span className="badge">{difficulty}</span> · {MODE_LABEL[mode]}
+      </p>
       <p className="muted">Send them this code or link. The race starts as soon as they join.</p>
       <div className="big-code">{code}</div>
       <div className="share">
@@ -208,7 +214,7 @@ function Results({ room, onRematch, onExit }: { room: RoomView; onRematch: () =>
       ? 'Your opponent left the race.'
       : won
         ? `Solved in ${formatTime(me.finishedMs ?? 0)} with ${me.mistakes} ${me.mistakes === 1 ? 'mistake' : 'mistakes'}.`
-        : `They solved it in ${formatTime(room.players[room.winner ?? 0]?.finishedMs ?? 0)}. You were ${Math.round(me.progress * 100)}% done.`;
+        : `They solved ${room.mode === 'fair-race' ? 'theirs' : 'it'} in ${formatTime(room.players[room.winner ?? 0]?.finishedMs ?? 0)}. You were ${Math.round(me.progress * 100)}% done.`;
 
   return (
     <div className="overlay" role="status">

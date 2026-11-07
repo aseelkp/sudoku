@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CELLS,
   type ClientMessage,
+  type Mode,
   type RoomView,
   type ServerMessage,
   clearPeerNotes,
@@ -10,7 +11,7 @@ import { stepSelection } from './useBoardKeys';
 
 /** What the race screen should do once connected. */
 export type RaceIntent =
-  | { t: 'create'; difficulty: RoomView['difficulty']; name: string }
+  | { t: 'create'; mode: Mode; difficulty: RoomView['difficulty']; name: string }
   | { t: 'join'; code: string; name: string }
   | { t: 'resume' };
 
@@ -116,13 +117,7 @@ export function useRace(intent: RaceIntent) {
         setConnected(true);
         const session = loadSession();
         if (firstIntent && firstIntent.t !== 'resume') {
-          socket.send(
-            JSON.stringify(
-              firstIntent.t === 'create'
-                ? { t: 'create', mode: 'race', difficulty: firstIntent.difficulty, name: firstIntent.name }
-                : firstIntent,
-            ),
-          );
+          socket.send(JSON.stringify(firstIntent satisfies ClientMessage));
         } else if (session) {
           socket.send(JSON.stringify({ t: 'resume', ...session }));
         } else {

@@ -17,6 +17,7 @@ import {
   newGame,
   placeDigit,
   progress,
+  scramblePuzzle,
   toPlayerBoard,
 } from '@sudoku/shared';
 
@@ -242,7 +243,9 @@ export class Lobby {
   private start(room: Room) {
     room.timer = null;
     const puzzle = this.generate(room.difficulty);
-    for (const p of room.players) p.game = newGame(puzzle);
+    for (const p of room.players) {
+      p.game = newGame(room.mode === 'fair-race' ? scramblePuzzle(puzzle) : puzzle);
+    }
     room.status = 'playing';
     this.broadcast(room);
   }

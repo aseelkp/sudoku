@@ -707,3 +707,39 @@ input:focus-visible {
     transition: none;
   }
 }
+
+/* Race type picker */
+
+.modes {
+  display: grid;
+  gap: 6px;
+}
+
+.mode {
+  display: grid;
+  gap: 2px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mode strong {
+  font-size: 0.9rem;
+}
+
+.mode span {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.mode.on {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.mode-tag {
+  font-size: 0.85rem;
+}

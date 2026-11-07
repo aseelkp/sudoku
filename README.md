@@ -1,6 +1,6 @@
 # Sudoku
 
-Solo sudoku, plus multiplayer races against a friend.
+Solo sudoku, plus multiplayer races against a friend: on the same puzzle, or on different puzzles of identical difficulty ("fair race").
 
 ## Run it
 
