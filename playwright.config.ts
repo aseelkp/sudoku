@@ -6,6 +6,8 @@ const remote = process.env.BASE_URL;
 
 export default defineConfig({
   testDir: 'e2e',
+  // Against a deployed server every move is a network round trip, and the long games make ~50 of them.
+  timeout: remote ? 120_000 : 30_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

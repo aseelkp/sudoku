@@ -62,8 +62,15 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
     <div className="home">
       <header>
         <h1>Sudoku</h1>
-        <p className="tagline hand">for you and a friend</p>
+        <p className="tagline hand">on your own, or with a friend</p>
       </header>
+
+      <button type="button" className="btn wide solo-btn" onClick={onSolo}>
+        <PencilIcon />
+        Play solo
+      </button>
+
+      <h2 className="friend-heading">Play with a friend</h2>
 
       <div className="field">
         <label htmlFor="name">Your name</label>
@@ -90,14 +97,14 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
 
       <form
         className="field"
-        style={{ gap: 18 }}
+        style={{ gap: 14 }}
         onSubmit={(e) => {
           e.preventDefault();
           withName((n) => onRace({ t: 'create', mode, difficulty, name: n }));
         }}
       >
         <section className="choices">
-          <h2 id="mode-heading">How do you want to play?</h2>
+          <h3 id="mode-heading">How do you want to play?</h3>
           <div className="choices" role="radiogroup" aria-labelledby="mode-heading">
             {MODE_OPTIONS.map((m) => (
               <button
@@ -157,11 +164,6 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
           </button>
         </div>
       </form>
-
-      <button type="button" className="text-btn link" onClick={onSolo}>
-        <PencilIcon />
-        Play solo instead
-      </button>
     </div>
   );
 }
