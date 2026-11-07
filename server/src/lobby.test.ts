@@ -375,6 +375,33 @@ describe('co-op', () => {
     expect(b.room.players[0].placed + b.room.players[1].placed).toBe(blanks.length);
   });
 
+  it('pauses for both players, blocks moves, and leaves paused time off the clock', () => {
+    const { a, b } = startCoop();
+    vi.advanceTimersByTime(10_000);
+    lobby.handle(b, { t: 'pause' });
+    expect(a.room.pause).toMatchObject({ byYou: false });
+    expect(b.room.pause).toMatchObject({ byYou: true });
+
+    const [cell] = blanks;
+    lobby.handle(a, { t: 'move', cell, digit: puzzle.solution[cell] });
+    expect(a.room.board!.values[cell]).toBe(0);
+
+    vi.advanceTimersByTime(60_000);
+    lobby.handle(a, { t: 'unpause' });
+    expect(b.room.pause).toBeNull();
+
+    vi.advanceTimersByTime(5_000);
+    blanks.forEach((c, i) => lobby.handle(i % 2 ? b : a, { t: 'move', cell: c, digit: puzzle.solution[c] }));
+    // 10s before the pause + 5s after; the minute paused doesn't count.
+    expect(a.room.players[0].finishedMs).toBe(15_000);
+  });
+
+  it('has no pause in races', () => {
+    const { a, b } = startRace();
+    lobby.handle(a, { t: 'pause' });
+    expect(b.room.pause).toBeNull();
+  });
+
   it('lets the remaining player carry on when a partner leaves', () => {
     const { a, b } = startCoop();
     lobby.handle(b, { t: 'leave' });

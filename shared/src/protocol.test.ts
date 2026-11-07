@@ -10,6 +10,7 @@ it('accepts well-formed messages and normalizes them', () => {
   expect(parseClientMessage('{"t":"move","cell":80,"digit":9}')).toEqual({ t: 'move', cell: 80, digit: 9 });
   expect(parseClientMessage('{"t":"note","cell":3,"digit":4}')).toEqual({ t: 'note', cell: 3, digit: 4 });
   expect(parseClientMessage('{"t":"cursor","cell":null}')).toEqual({ t: 'cursor', cell: null });
+  expect(parseClientMessage('{"t":"pause"}')).toEqual({ t: 'pause' });
   expect(parseClientMessage('{"t":"create","mode":"coop","difficulty":"hard","name":"Bo"}')).toMatchObject({
     mode: 'coop',
   });

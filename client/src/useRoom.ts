@@ -177,7 +177,7 @@ export function useRoom(intent: RoomIntent) {
   const coop = room?.mode === 'coop';
   const notes = room?.notes ?? localNotes;
   const me = room ? room.players[room.you] : null;
-  const canPlay = room?.status === 'playing' && board !== null && me?.finishedMs === null && connected;
+  const canPlay = room?.status === 'playing' && board !== null && me?.finishedMs === null && !room.pause && connected;
   const isLocked = (cell: number) =>
     !board || board.givens[cell] !== 0 || (board.values[cell] !== 0 && !board.wrong.includes(cell));
 
@@ -244,6 +244,8 @@ export function useRoom(intent: RoomIntent) {
     digit,
     erase,
     rematch: () => send({ t: 'rematch' }),
+    pause: () => send({ t: 'pause' }),
+    unpause: () => send({ t: 'unpause' }),
     leave,
   };
 }

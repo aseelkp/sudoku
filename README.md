@@ -7,6 +7,8 @@ Sudoku for one or two players:
 - **Race, different puzzles**: each player gets their own grid of identical difficulty
 - **Co-op**: one shared board, shared pencil marks, and your partner's cursor
 
+Solo and co-op games can be paused (the board hides while the clock is stopped). Light and dark themes follow the system setting, with a switch on the home page.
+
 ## Run it
 
 ```bash

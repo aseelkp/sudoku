@@ -96,8 +96,25 @@ export function FinishFlag() {
   return (
     <svg aria-hidden="true" className="finish-flag" width="26" height="34" viewBox="0 0 26 34" fill="none">
       <path d="M3 33V3" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
-      <path d="M3 4h20v14H3" fill="#fff" stroke="var(--ink)" strokeWidth="1.6" />
+      <path d="M3 4h20v14H3" fill="var(--white)" stroke="var(--ink)" strokeWidth="1.6" />
       <path d="M3 4h5v5H3zM13 4h5v5h-5zM8 9h5v4H8zM18 9h5v4h-5zM3 13h5v5H3zM13 13h5v5h-5z" fill="var(--ink)" />
+    </svg>
+  );
+}
+
+export function PauseIcon() {
+  return (
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+      <rect x="3.5" y="2.5" width="3.5" height="13" rx="1.2" />
+      <rect x="11" y="2.5" width="3.5" height="13" rx="1.2" />
+    </svg>
+  );
+}
+
+export function PlayIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 18 18" fill="currentColor">
+      <path d="M5 2.8v12.4a.8.8 0 0 0 1.2.7l10-6.2a.8.8 0 0 0 0-1.4l-10-6.2A.8.8 0 0 0 5 2.8z" />
     </svg>
   );
 }

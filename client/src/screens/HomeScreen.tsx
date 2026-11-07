@@ -9,6 +9,7 @@ import {
   normalizeName,
 } from '@sudoku/shared';
 import { DrawnCheckbox, DrawnCircle, PencilIcon } from '../components/icons';
+import { ThemeSwitch } from '../components/ThemeSwitch';
 import type { RoomIntent } from '../useRoom';
 
 const NAME_KEY = 'sudoku:name';
@@ -164,6 +165,8 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
           </button>
         </div>
       </form>
+
+      <ThemeSwitch />
     </div>
   );
 }

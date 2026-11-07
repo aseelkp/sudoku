@@ -71,6 +71,10 @@ export class Lobby {
         if (room.mode !== 'coop' || player.cursor === msg.cell) return;
         player.cursor = msg.cell;
         return this.broadcast(room);
+      case 'pause':
+        return this.pause(room, player);
+      case 'unpause':
+        return this.unpause(room);
       case 'rematch':
         return this.rematch(room, player);
       case 'leave':
@@ -155,7 +159,7 @@ export class Lobby {
   ) {
     const coop = room.mode === 'coop';
     let game = boardOf(room, player);
-    if (room.status !== 'playing' || !game || player.finishedMs !== null) return;
+    if (room.status !== 'playing' || !game || player.finishedMs !== null || room.pause) return;
 
     const before = game;
     if (msg.t === 'erase') {
@@ -193,6 +197,21 @@ export class Lobby {
       room.status = 'finished';
     }
     // Broadcast even when nothing changed, so the sender's pending digit always clears.
+    this.broadcast(room);
+  }
+
+  /** Co-op only: in a race, stopping the clock would let one player think while hidden from the other. */
+  private pause(room: Room, player: Player) {
+    if (room.mode !== 'coop' || room.status !== 'playing' || room.pause) return;
+    room.pause = { since: Date.now(), by: player.id };
+    this.broadcast(room);
+  }
+
+  private unpause(room: Room) {
+    if (!room.pause) return;
+    // Shift the start forward by the pause, so finish times count only time spent playing.
+    room.startAt! += Date.now() - room.pause.since;
+    room.pause = null;
     this.broadcast(room);
   }
 
@@ -254,6 +273,7 @@ export class Lobby {
     room.shared = null;
     room.writtenBy = null;
     room.startAt = null;
+    room.pause = null;
     room.winner = null;
     room.endReason = null;
     for (const p of room.players) {

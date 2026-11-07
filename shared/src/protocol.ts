@@ -42,8 +42,13 @@ export interface RoomView {
   /** Index of the receiving player in `players`. */
   you: number;
   players: PlayerSummary[];
-  /** Server time the round starts (countdown) or started (playing/finished). */
+  /**
+   * Server time the round starts (countdown) or started (playing/finished). Pauses push it later, so elapsed
+   * play time is always now (or the pause start) minus startAt.
+   */
   startAt: number | null;
+  /** Co-op only: set while the game is paused. Nobody can move, and the board is hidden. */
+  pause: { since: number; byYou: boolean } | null;
   /** Server clock at send time, so clients can correct for clock skew. */
   serverNow: number;
   /** Increments with every rematch; clients reset local state (notes) when it changes. */
@@ -70,6 +75,8 @@ export type ClientMessage =
   | { t: 'erase'; cell: number }
   | { t: 'note'; cell: number; digit: number }
   | { t: 'cursor'; cell: number | null }
+  | { t: 'pause' }
+  | { t: 'unpause' }
   | { t: 'rematch' }
   | { t: 'leave' };
 
@@ -120,6 +127,8 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       return isInt(m.cell, 0, CELLS - 1) && isInt(m.digit, 1, 9) ? { t: 'note', cell: m.cell, digit: m.digit } : null;
     case 'cursor':
       return m.cell === null || isInt(m.cell, 0, CELLS - 1) ? { t: 'cursor', cell: m.cell } : null;
+    case 'pause':
+    case 'unpause':
     case 'rematch':
     case 'leave':
       return { t: m.t };

@@ -30,6 +30,7 @@ export function toRoomView(room: Room, you: number, serverNow: number): RoomView
       };
     }),
     startAt: room.startAt,
+    pause: room.pause ? { since: room.pause.since, byYou: room.pause.by === room.players[you].id } : null,
     serverNow,
     round: room.round,
     board: myBoard ? toPlayerBoard(myBoard) : null,

@@ -28,13 +28,94 @@
   --related: #edf2fb;
   --tape: rgb(255 228 92 / 0.78);
 
+  /* Lines and shadows that change character between paper and night. */
+  --box-line: var(--ink);
+  --control-line: var(--ink);
+  --track-line: var(--ink);
+  --on-mark: var(--ink);
+  --note-ink: #5b6478;
+  --choice-mark: var(--highlighter);
+  --primary-hover: #24396a;
+  --card-shadow: rgb(27 43 75 / 0.12);
+
   --font-ui: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-hand: 'Caveat', 'Segoe Print', 'Bradley Hand', cursive;
+  --font-hand: 'Patrick Hand', 'Segoe Print', 'Bradley Hand', cursive;
 
   --col: min(100vw - 32px, 440px);
   --cell: calc(var(--col) / 9);
   --radius: 10px;
   color-scheme: light;
+}
+
+/* Night notebook (keep both copies below in sync). Applies when the system is dark (unless light was chosen), or when dark was chosen. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #121a2b;
+    --paper-grid: #1c2740;
+    --white: #172238;
+    --ink: #e6ecf7;
+    --ink-soft: #a6b3cc;
+    --ink-faint: #7c8aa8;
+    --cell-line: #2c3a57;
+    --rule: #3a4a6b;
+    --card-edge: #34466a;
+    --margin-line: #7a3f52;
+    --you: #82a8ff;
+    --you-wash: #1f3160;
+    --partner: #ffae63;
+    --partner-mark: #f08a2e;
+    --wrong: #ff8a80;
+    --wrong-ring: #ff6f66;
+    --wrong-wash: #3b1d27;
+    --highlighter: #e8cf4a;
+    --selected: #4d4b33;
+    --same-digit: #3a3a2e;
+    --related: #1e2b46;
+    --tape: rgb(255 228 92 / 0.5);
+    --box-line: #8496bc;
+    --control-line: #8496bc;
+    --track-line: #a6b3cc;
+    --on-mark: #121a2b;
+    --note-ink: #a6b3cc;
+    --choice-mark: rgb(255 228 92 / 0.38);
+    --primary-hover: #ffffff;
+    --card-shadow: rgb(0 0 0 / 0.35);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #121a2b;
+  --paper-grid: #1c2740;
+  --white: #172238;
+  --ink: #e6ecf7;
+  --ink-soft: #a6b3cc;
+  --ink-faint: #7c8aa8;
+  --cell-line: #2c3a57;
+  --rule: #3a4a6b;
+  --card-edge: #34466a;
+  --margin-line: #7a3f52;
+  --you: #82a8ff;
+  --you-wash: #1f3160;
+  --partner: #ffae63;
+  --partner-mark: #f08a2e;
+  --wrong: #ff8a80;
+  --wrong-ring: #ff6f66;
+  --wrong-wash: #3b1d27;
+  --highlighter: #e8cf4a;
+  --selected: #4d4b33;
+  --same-digit: #3a3a2e;
+  --related: #1e2b46;
+  --tape: rgb(255 228 92 / 0.5);
+  --box-line: #8496bc;
+  --control-line: #8496bc;
+  --track-line: #a6b3cc;
+  --on-mark: #121a2b;
+  --note-ink: #a6b3cc;
+  --choice-mark: rgb(255 228 92 / 0.38);
+  --primary-hover: #ffffff;
+  --card-shadow: rgb(0 0 0 / 0.35);
+  color-scheme: dark;
 }
 
 * {
@@ -104,7 +185,7 @@ button:disabled {
 
 .hand {
   font-family: var(--font-hand);
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .soft {
@@ -120,7 +201,7 @@ button:disabled {
   gap: 8px;
   min-height: 48px;
   padding: 0 16px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--control-line);
   border-radius: var(--radius);
   background: var(--white);
   color: var(--ink);
@@ -130,6 +211,7 @@ button:disabled {
 
 /* The main action of a screen: ink, with a blue pencil offset. */
 .btn.primary {
+  border-color: var(--ink);
   background: var(--ink);
   color: var(--white);
   box-shadow: 3px 3px 0 var(--you);
@@ -229,7 +311,7 @@ button:disabled {
   padding: 28px 20px 20px;
   background: var(--white);
   border: 1.5px solid var(--card-edge);
-  box-shadow: 4px 6px 0 rgb(27 43 75 / 0.1);
+  box-shadow: 4px 6px 0 var(--card-shadow);
 }
 
 .paper-card.tilted {
@@ -326,15 +408,15 @@ button:disabled {
 
 .home .tagline {
   margin: 2px 0 0;
-  font-size: 26px;
+  font-size: 23px;
   line-height: 1.1;
   color: var(--you);
 }
 
 .name-input {
   font-family: var(--font-hand);
-  font-weight: 700;
-  font-size: 30px;
+  font-weight: 400;
+  font-size: 26px;
   color: var(--you);
 }
 
@@ -393,7 +475,7 @@ button:disabled {
 }
 
 .choice[aria-checked='true'] .choice-title {
-  background: linear-gradient(transparent 45%, var(--highlighter) 45%, var(--highlighter) 92%, transparent 92%);
+  background: linear-gradient(transparent 45%, var(--choice-mark) 45%, var(--choice-mark) 92%, transparent 92%);
 }
 
 .choice-detail {
@@ -452,7 +534,7 @@ button:disabled {
 
 .join-row .btn {
   width: 88px;
-  box-shadow: 3px 3px 0 var(--ink);
+  box-shadow: 3px 3px 0 var(--control-line);
 }
 
 /* Game header rows */
@@ -502,7 +584,7 @@ button:disabled {
   top: 50px;
   left: 0;
   right: 32px;
-  border-top: 2px dashed var(--ink);
+  border-top: 2px dashed var(--track-line);
 }
 
 .track .finish-flag {
@@ -548,8 +630,8 @@ button:disabled {
 
 .racer-name {
   font-family: var(--font-hand);
-  font-weight: 700;
-  font-size: 21px;
+  font-weight: 400;
+  font-size: 20px;
   line-height: 1;
 }
 
@@ -588,7 +670,7 @@ button:disabled {
 }
 
 .team-head .hand {
-  font-size: 22px;
+  font-size: 20px;
   color: var(--ink-soft);
 }
 
@@ -651,10 +733,10 @@ button:disabled {
   grid-template-columns: repeat(9, minmax(0, 1fr));
   width: var(--col);
   aspect-ratio: 1;
-  border: 2.5px solid var(--ink);
+  border: 2.5px solid var(--box-line);
   border-radius: 6px;
   background: var(--white);
-  box-shadow: 4px 4px 0 rgb(27 43 75 / 0.12);
+  box-shadow: 4px 4px 0 var(--card-shadow);
   user-select: none;
 }
 
@@ -688,10 +770,10 @@ button:disabled {
   border-bottom: 0;
 }
 .cell.edge-right {
-  border-right: 2.5px solid var(--ink);
+  border-right: 2.5px solid var(--box-line);
 }
 .cell.edge-bottom {
-  border-bottom: 2.5px solid var(--ink);
+  border-bottom: 2.5px solid var(--box-line);
 }
 .cell.corner-tl {
   border-top-left-radius: 3px;
@@ -724,8 +806,9 @@ button:disabled {
 /* Anything a player wrote is in pencil handwriting. */
 .cell.written {
   font-family: var(--font-hand);
-  font-size: calc(var(--cell) * 0.8);
+  font-size: calc(var(--cell) * 0.66);
   color: var(--you);
+  font-weight: 400;
 }
 .cell.written.by-partner {
   color: var(--partner);
@@ -766,9 +849,9 @@ button:disabled {
   height: 100%;
   padding: 1px 2px;
   font-family: var(--font-hand);
-  font-weight: 700;
-  font-size: calc(var(--cell) * 0.36);
-  color: #5b6478;
+  font-weight: 400;
+  font-size: calc(var(--cell) * 0.31);
+  color: var(--note-ink);
 }
 
 .note {
@@ -797,10 +880,10 @@ button:disabled {
   padding: 1px 6px 2px;
   border-radius: 4px;
   background: var(--partner-mark);
-  color: var(--ink);
+  color: var(--on-mark);
   font-family: var(--font-hand);
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 400;
+  font-size: 14px;
   line-height: 1;
   white-space: nowrap;
   pointer-events: none;
@@ -863,8 +946,8 @@ button:disabled {
 .countdown {
   margin-top: 8px;
   font-family: var(--font-hand);
-  font-weight: 700;
-  font-size: 140px;
+  font-weight: 400;
+  font-size: 118px;
   line-height: 1;
   color: var(--you);
 }
@@ -882,8 +965,8 @@ button:disabled {
 .result-card h2 {
   margin: 0;
   font-family: var(--font-hand);
-  font-weight: 700;
-  font-size: 60px;
+  font-weight: 400;
+  font-size: 50px;
   line-height: 0.95;
   color: var(--you);
 }
@@ -919,8 +1002,8 @@ button:disabled {
 .result-table th {
   text-align: left;
   font-family: var(--font-hand);
-  font-weight: 700;
-  font-size: 24px;
+  font-weight: 400;
+  font-size: 22px;
   line-height: 1;
   color: var(--you);
 }
@@ -948,8 +1031,8 @@ button:disabled {
 .result-note {
   margin: -4px 0 0;
   font-family: var(--font-hand);
-  font-weight: 700;
-  font-size: 22px;
+  font-weight: 400;
+  font-size: 20px;
   line-height: 1;
   color: var(--partner);
 }
@@ -974,16 +1057,16 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   padding: 6px 0 3px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--control-line);
   border-radius: 8px;
   background: var(--white);
   color: var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
+  box-shadow: 2px 2px 0 var(--control-line);
 }
 
 .digit:active:not(:disabled) {
   transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--ink);
+  box-shadow: 1px 1px 0 var(--control-line);
 }
 
 .digit-value {
@@ -995,8 +1078,8 @@ button:disabled {
 .digit-left {
   min-height: 16px;
   font-family: var(--font-hand);
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: 400;
+  font-size: 14px;
   line-height: 1;
   color: var(--ink-soft);
 }
@@ -1080,7 +1163,7 @@ kbd {
   min-width: 0;
   height: 48px;
   padding: 0 12px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--control-line);
   border-radius: var(--radius);
   background: var(--white);
   color: var(--ink-soft);
@@ -1106,7 +1189,7 @@ kbd {
 }
 
 .roster .who {
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1;
 }
 
@@ -1119,7 +1202,7 @@ kbd {
 }
 
 .roster .who.missing {
-  font-size: 24px;
+  font-size: 20px;
   color: var(--ink-faint);
 }
 
@@ -1149,8 +1232,8 @@ kbd {
 .center-card p {
   margin: 0;
   font-family: var(--font-hand);
-  font-weight: 700;
-  font-size: 26px;
+  font-weight: 400;
+  font-size: 22px;
   color: var(--ink-soft);
 }
 
@@ -1202,7 +1285,7 @@ kbd {
     background: var(--you-wash);
   }
   .btn.primary:hover:not(:disabled) {
-    background: #24396a;
+    background: var(--primary-hover);
   }
   .digit:hover:not(:disabled) {
     background: var(--you-wash);
@@ -1214,5 +1297,83 @@ kbd {
   .difficulty button:hover,
   .text-btn:hover {
     color: var(--you);
+  }
+}
+
+/* Appearance switch on the home page */
+
+.theme-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1.5px dashed var(--rule);
+}
+
+.theme-switch .difficulty {
+  flex: 1;
+  max-width: 260px;
+}
+
+/* Pause */
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -6px 0;
+  border: 2px solid var(--control-line);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--ink);
+}
+
+.icon-btn.on {
+  border-color: var(--you);
+  background: var(--you-wash);
+  color: var(--you);
+}
+
+.stats:has(.icon-btn) {
+  align-items: center;
+}
+
+.paused-card {
+  width: calc(100% - 68px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.paused-card h2 {
+  margin: 0;
+  font-family: var(--font-hand);
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1;
+  color: var(--you);
+}
+
+.paused-card h2.partner {
+  color: var(--partner);
+}
+
+.paused-card p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.paused-card .btn {
+  margin-top: 6px;
+}
+
+@media (hover: hover) {
+  .icon-btn:hover {
+    background: var(--you-wash);
   }
 }

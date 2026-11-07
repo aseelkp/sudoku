@@ -3,12 +3,14 @@ import type { PlayerBoard, RoomView } from '@sudoku/shared';
 import { Board, EmptyBoard } from '../components/Board';
 import { BackIcon } from '../components/icons';
 import { NumberPad } from '../components/NumberPad';
+import { PausedCard } from '../components/PausedCard';
 import { RaceTrack } from '../components/room/RaceTrack';
 import { ResultsOverlay } from '../components/room/ResultsOverlay';
 import { TeamBar } from '../components/room/TeamBar';
 import { WaitingCard } from '../components/room/WaitingCard';
 import { Stats } from '../components/Stats';
 import { MODE_LABEL } from '../modeLabels';
+import { formatTime } from '../time';
 import { useBoardKeys } from '../useBoardKeys';
 import { useNow } from '../useNow';
 import { type RoomIntent, useRoom } from '../useRoom';
@@ -32,8 +34,16 @@ export function RoomScreen({ intent, onExit, onRoomCode }: Props) {
     if (code) onRoomCode(code);
   }, [code, onRoomCode]);
 
+  const canPause = room?.mode === 'coop' && room.status === 'playing';
+  const togglePause = () => (room?.pause ? game.unpause() : game.pause());
   useBoardKeys(
-    { digit: game.digit, move: game.move, erase: game.erase, toggleNotes: game.toggleNotes },
+    {
+      digit: game.digit,
+      move: game.move,
+      erase: game.erase,
+      toggleNotes: game.toggleNotes,
+      togglePause: canPause ? togglePause : undefined,
+    },
     room?.status === 'playing',
   );
 
@@ -75,7 +85,8 @@ export function RoomScreen({ intent, onExit, onRoomCode }: Props) {
   const serverNow = room.serverNow + Math.max(0, now - receivedAt);
   const me = room.players[room.you];
   const opponent = room.players.find((_, i) => i !== room.you) ?? null;
-  const elapsed = room.startAt ? serverNow - room.startAt : 0;
+  // A pause freezes the clock where it stopped; the server shifts startAt forward when play resumes.
+  const elapsed = room.startAt ? (room.pause?.since ?? serverNow) - room.startAt : 0;
   const coop = room.mode === 'coop';
 
   return (
@@ -116,11 +127,22 @@ export function RoomScreen({ intent, onExit, onRoomCode }: Props) {
             mode={MODE_LABEL[room.mode]}
             mistakes={board?.mistakes ?? 0}
             timeMs={me.finishedMs ?? (room.status === 'playing' ? elapsed : finishedElapsed(room))}
-            idle={room.status === 'countdown'}
+            idle={room.status === 'countdown' || room.pause !== null}
+            pause={canPause ? { paused: room.pause !== null, onToggle: togglePause } : undefined}
           />
 
           <div className="board-wrap">
-            {board ? (
+            {room.pause ? (
+              <>
+                <EmptyBoard />
+                <PausedCard
+                  title={room.pause.byYou ? 'Paused' : `${opponent?.name ?? 'Your partner'} paused`}
+                  byPartner={!room.pause.byYou}
+                  detail={`The clock is stopped at ${formatTime(elapsed)}. Either of you can pick it back up.`}
+                  onResume={game.unpause}
+                />
+              </>
+            ) : board ? (
               <div className={room.status === 'finished' ? 'faded' : undefined}>
                 <Board
                   board={board}

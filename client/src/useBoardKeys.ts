@@ -5,6 +5,8 @@ export interface BoardKeyHandlers {
   move: (dRow: number, dCol: number) => void;
   erase: () => void;
   toggleNotes: () => void;
+  /** Pause or resume, where the mode allows it. */
+  togglePause?: () => void;
 }
 
 const ARROWS: Record<string, [number, number]> = {
@@ -26,6 +28,7 @@ export function useBoardKeys(handlers: BoardKeyHandlers, enabled = true) {
     else if (ARROWS[e.key]) handlers.move(...ARROWS[e.key]);
     else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') handlers.erase();
     else if (e.key === 'n' || e.key === 'N') handlers.toggleNotes();
+    else if ((e.key === 'p' || e.key === 'P') && handlers.togglePause) handlers.togglePause();
     else return;
     e.preventDefault();
   });

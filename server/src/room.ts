@@ -40,6 +40,8 @@ export interface Room {
   /** Co-op: the id of the player who wrote each cell's digit, null for givens and empty cells. */
   writtenBy: (string | null)[] | null;
   startAt: number | null;
+  /** Co-op pause: when it began and which player id paused. */
+  pause: { since: number; by: string } | null;
   round: number;
   winner: number | null;
   endReason: RoomView['endReason'];
@@ -58,6 +60,7 @@ export function newRoom(code: string, mode: Mode, difficulty: Difficulty): Room 
     shared: null,
     writtenBy: null,
     startAt: null,
+    pause: null,
     round: 0,
     winner: null,
     endReason: null,

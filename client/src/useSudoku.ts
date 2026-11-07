@@ -19,9 +19,11 @@ interface State {
   notesMode: boolean;
   /** Bumped on every wrong move so the cell can replay its shake animation. */
   wrongMove: { cell: number; id: number } | null;
-  /** Elapsed play time banked before `resumedAt`. */
+  /** Play time banked before `resumedAt` (or before the pause). */
   elapsedMs: number;
   resumedAt: number;
+  /** The clock is stopped and the board hidden. */
+  paused: boolean;
   finishedMs: number | null;
 }
 
@@ -31,7 +33,9 @@ type Action =
   | { type: 'move'; dRow: number; dCol: number }
   | { type: 'digit'; digit: number; asNote: boolean }
   | { type: 'erase' }
-  | { type: 'toggleNotesMode' };
+  | { type: 'toggleNotesMode' }
+  | { type: 'pause' }
+  | { type: 'resume' };
 
 const STORAGE_KEY = 'sudoku:single-player';
 
@@ -43,9 +47,13 @@ function fresh(difficulty: Difficulty): State {
     wrongMove: null,
     elapsedMs: 0,
     resumedAt: Date.now(),
+    paused: false,
     finishedMs: null,
   };
 }
+
+/** Play time so far, not counting pauses. */
+const played = (s: State, now: number) => s.elapsedMs + (s.paused ? 0 : now - s.resumedAt);
 
 function load(): State {
   try {
@@ -62,12 +70,23 @@ function load(): State {
 function reducer(state: State, action: Action): State {
   const { game, selected } = state;
   const done = state.finishedMs !== null;
+  // While paused the board is hidden, so nothing on it can change either.
+  const locked = done || state.paused;
 
   switch (action.type) {
     case 'new':
       return fresh(action.difficulty);
 
+    case 'pause':
+      if (locked) return state;
+      return { ...state, elapsedMs: played(state, Date.now()), paused: true };
+
+    case 'resume':
+      if (!state.paused) return state;
+      return { ...state, paused: false, resumedAt: Date.now() };
+
     case 'select':
+      if (state.paused) return state;
       return { ...state, selected: action.cell };
 
     case 'move':
@@ -77,18 +96,18 @@ function reducer(state: State, action: Action): State {
       return { ...state, notesMode: !state.notesMode };
 
     case 'erase':
-      if (selected === null || done) return state;
+      if (selected === null || locked) return state;
       return { ...state, game: eraseCell(game, selected) };
 
     case 'digit': {
-      if (selected === null || done) return state;
+      if (selected === null || locked) return state;
       if (action.asNote || state.notesMode) {
         return { ...state, game: toggleNote(game, selected, action.digit) };
       }
       const { state: next, result } = placeDigit(game, selected, action.digit);
       if (result === 'ignored') return state;
       const wrongMove = result === 'wrong' ? { cell: selected, id: (state.wrongMove?.id ?? 0) + 1 } : state.wrongMove;
-      const finishedMs = isSolved(next) ? state.elapsedMs + Date.now() - state.resumedAt : null;
+      const finishedMs = isSolved(next) ? played(state, Date.now()) : null;
       return { ...state, game: next, wrongMove, finishedMs };
     }
   }
@@ -96,18 +115,25 @@ function reducer(state: State, action: Action): State {
 
 export function useSudoku() {
   const [state, dispatch] = useReducer(reducer, undefined, load);
-  const now = useNow(1000, state.finishedMs === null);
+  const now = useNow(1000, state.finishedMs === null && !state.paused);
+
+  // Switching tabs or locking the phone pauses the game rather than running the clock.
+  useEffect(() => {
+    const onVisibility = () => document.hidden && dispatch({ type: 'pause' });
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   useEffect(() => {
     try {
-      const elapsedMs = state.finishedMs ?? state.elapsedMs + Date.now() - state.resumedAt;
-      const { game, notesMode, finishedMs } = state;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ game, notesMode, finishedMs, elapsedMs }));
+      const elapsedMs = state.finishedMs ?? played(state, Date.now());
+      const { game, notesMode, finishedMs, paused } = state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ game, notesMode, finishedMs, elapsedMs, paused }));
     } catch {
       // Saving is a convenience; ignore failures.
     }
   }, [state, now]);
 
-  const elapsedMs = state.finishedMs ?? state.elapsedMs + now - state.resumedAt;
+  const elapsedMs = state.finishedMs ?? played(state, now);
   return { ...state, elapsedMs: Math.max(0, elapsedMs), dispatch };
 }
