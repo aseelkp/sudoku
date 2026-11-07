@@ -1,0 +1,10 @@
+{
+  "name": "sudoku",
+  "private": true,
+  "workspaces": ["client", "shared"],
+  "scripts": {
+    "dev": "npm run dev -w client",
+    "build": "npm run build -w client",
+    "test": "npm test -w shared"
+  }
+}
