@@ -33,7 +33,7 @@ test('race: same puzzle, opponent sees only progress, first to finish wins, rema
   await expect(cells(ana).nth(second)).toHaveClass(/wrong/);
 
   // Ben sees Ana's progress and mistake, but none of her digits.
-  await expect(ben.locator('.racer').nth(1)).toContainText('1✕');
+  await expect(ben.locator('.racer.opponent')).toContainText('1 mistake');
   await expect(cells(ben).nth(first)).toHaveText('');
 
   await cells(ana).nth(second).click();
@@ -43,7 +43,7 @@ test('race: same puzzle, opponent sees only progress, first to finish wins, rema
   await expect(ana.getByRole('status')).toContainText('You win!');
   await expect(ben.getByRole('status')).toContainText('Ana wins');
 
-  await ben.getByRole('button', { name: 'Rematch' }).click();
+  await ben.getByRole('button', { name: 'Rematch', exact: true }).click();
   await ana.getByRole('button', { name: 'Accept rematch' }).click();
   await waitForStart(ana, ben);
   expect((await readGivens(ana)).filter(Boolean).length).toBeLessThan(81);
@@ -55,7 +55,8 @@ test('race: leaving mid-race hands the win to the opponent', async ({ page: ana,
   await joinByLink(ben, code, 'Ben');
   await waitForStart(ana, ben);
 
-  await ben.getByRole('button', { name: '← Leave' }).click();
+  await ben.getByRole('button', { name: 'Leave', exact: true }).click();
+  await ben.getByRole('button', { name: 'Tap again to leave' }).click();
   await expect(ana.getByRole('status')).toContainText('Your opponent left the race.');
 });
 

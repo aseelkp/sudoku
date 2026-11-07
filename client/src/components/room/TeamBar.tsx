@@ -4,42 +4,39 @@ import type { PlayerSummary } from '@sudoku/shared';
 export function TeamBar({ me, partner }: { me: PlayerSummary; partner: PlayerSummary | null }) {
   const pct = Math.round(me.progress * 100);
   return (
-    <div className="team">
-      <div className="racer-head">
-        <span className="racer-name">Board {pct}% done</span>
+    <section className="team" aria-label="Team progress">
+      <div className="team-head">
+        <span>Board {pct}% done</span>
+        <span className="hand" aria-hidden="true">
+          together
+        </span>
       </div>
       <div
-        className="track"
+        className="meter"
         role="progressbar"
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label="Board progress"
       >
-        <div className="fill" style={{ width: `${pct}%` }} />
+        <div className="meter-fill" style={{ transform: `scaleX(${pct / 100})` }} />
       </div>
       <div className="teammates">
         <Teammate player={me} label="You" />
-        {partner ? (
-          <Teammate player={partner} label={partner.name} partner />
-        ) : (
-          <span className="muted">Partner left · keep going</span>
-        )}
+        {partner ? <Teammate player={partner} label={partner.name} partner /> : <span>Partner left. Keep going!</span>}
       </div>
-    </div>
+    </section>
   );
 }
 
 function Teammate({ player, label, partner }: { player: PlayerSummary; label: string; partner?: boolean }) {
+  const mistakes = player.mistakes === 1 ? ', 1 mistake' : player.mistakes > 1 ? `, ${player.mistakes} mistakes` : '';
   return (
     <span className="teammate">
       <span className={partner ? 'swatch partner' : 'swatch'} aria-hidden="true" />
-      <strong>{label}</strong>
-      {!player.connected && <em> · reconnecting</em>}
-      <span className="muted">
-        {' '}
-        {player.placed} placed{player.mistakes > 0 && <span className="mistakes has"> · {player.mistakes}✕</span>}
-      </span>
+      <strong className={partner ? 'partner' : 'you'}>{label}</strong>
+      {player.placed} placed{mistakes}
+      {!player.connected && ', reconnecting'}
     </span>
   );
 }

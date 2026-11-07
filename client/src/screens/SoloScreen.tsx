@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { DIFFICULTIES, type Difficulty, toPlayerBoard } from '@sudoku/shared';
 import { Board } from '../components/Board';
+import { BackIcon } from '../components/icons';
 import { NumberPad } from '../components/NumberPad';
+import { Stats } from '../components/Stats';
 import { formatTime } from '../time';
 import { useBoardKeys } from '../useBoardKeys';
 import { useSudoku } from '../useSudoku';
@@ -10,6 +12,7 @@ export function SoloScreen({ onHome }: { onHome: () => void }) {
   const { game, selected, notesMode, wrongMove, elapsedMs, finishedMs, dispatch } = useSudoku();
   const [difficulty, setDifficulty] = useState<Difficulty>(game.puzzle.difficulty);
   const board = useMemo(() => toPlayerBoard(game), [game]);
+  const solved = finishedMs !== null;
 
   useBoardKeys({
     digit: (digit, asNote) => dispatch({ type: 'digit', digit, asNote }),
@@ -18,15 +21,22 @@ export function SoloScreen({ onHome }: { onHome: () => void }) {
     toggleNotes: () => dispatch({ type: 'toggleNotesMode' }),
   });
 
+  const newGame = () => dispatch({ type: 'new', difficulty });
+
   return (
     <>
-      <header className="bar">
-        <button type="button" className="back" onClick={onHome} aria-label="Back to menu">
-          ← Sudoku
+      <div className="bar">
+        <button type="button" className="text-btn title-btn" onClick={onHome} aria-label="Back to menu">
+          <BackIcon />
+          Sudoku
         </button>
-        <div className="new-game">
+        <div className="solo-actions">
+          <label htmlFor="solo-difficulty" className="sr-only">
+            Difficulty
+          </label>
           <select
-            aria-label="Difficulty"
+            id="solo-difficulty"
+            className="line-select"
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value as Difficulty)}
           >
@@ -36,50 +46,52 @@ export function SoloScreen({ onHome }: { onHome: () => void }) {
               </option>
             ))}
           </select>
-          <button type="button" className="primary" onClick={() => dispatch({ type: 'new', difficulty })}>
+          <button type="button" className="btn primary" onClick={newGame}>
             New game
           </button>
         </div>
-      </header>
-
-      <div className="stats">
-        <span className="badge">{game.puzzle.difficulty}</span>
-        <span className={game.mistakes ? 'mistakes has' : 'mistakes'}>Mistakes: {game.mistakes}</span>
-        <span className="timer" aria-label="Time">
-          {formatTime(elapsedMs)}
-        </span>
       </div>
 
+      <h1 className="sr-only">Solo game</h1>
+      <Stats difficulty={game.puzzle.difficulty} mistakes={game.mistakes} timeMs={elapsedMs} />
+
       <div className="board-wrap">
-        <Board
-          board={board}
-          notes={game.notes}
-          selected={selected}
-          wrongMove={wrongMove}
-          onSelect={(cell) => dispatch({ type: 'select', cell })}
-        />
-        {finishedMs !== null && (
-          <div className="overlay" role="status">
-            <h2>Solved!</h2>
-            <p>
-              {formatTime(finishedMs)} · {game.mistakes} {game.mistakes === 1 ? 'mistake' : 'mistakes'}
-            </p>
-            <button type="button" className="primary" onClick={() => dispatch({ type: 'new', difficulty })}>
+        <div className={solved ? 'faded' : undefined}>
+          <Board
+            board={board}
+            notes={game.notes}
+            selected={solved ? null : selected}
+            wrongMove={wrongMove}
+            onSelect={(cell) => dispatch({ type: 'select', cell })}
+          />
+        </div>
+        {solved && (
+          <div className="paper-card tilted result-card" role="status">
+            <span className="tape center" aria-hidden="true" />
+            <div>
+              <h2>Solved!</h2>
+              <p>
+                {formatTime(finishedMs)} with {game.mistakes === 1 ? '1 mistake' : `${game.mistakes} mistakes`}.
+              </p>
+            </div>
+            <button type="button" className="btn primary wide" onClick={newGame}>
               Play again
             </button>
           </div>
         )}
       </div>
 
-      <NumberPad
-        board={board}
-        notesMode={notesMode}
-        onDigit={(digit) => dispatch({ type: 'digit', digit, asNote: false })}
-        onErase={() => dispatch({ type: 'erase' })}
-        onToggleNotes={() => dispatch({ type: 'toggleNotesMode' })}
-      />
+      {!solved && (
+        <NumberPad
+          board={board}
+          notesMode={notesMode}
+          onDigit={(digit) => dispatch({ type: 'digit', digit, asNote: false })}
+          onErase={() => dispatch({ type: 'erase' })}
+          onToggleNotes={() => dispatch({ type: 'toggleNotesMode' })}
+        />
+      )}
 
-      <p className="hint">Arrows to move · 1–9 to fill · Shift+1–9 for a pencil mark</p>
+      <p className="hint">Arrows to move, 1–9 to fill, Shift+1–9 for a pencil mark</p>
     </>
   );
 }

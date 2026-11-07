@@ -8,14 +8,15 @@ import {
   normalizeCode,
   normalizeName,
 } from '@sudoku/shared';
+import { DrawnCheckbox, DrawnCircle, PencilIcon } from '../components/icons';
 import type { RoomIntent } from '../useRoom';
 
 const NAME_KEY = 'sudoku:name';
 
-const MODE_OPTIONS: { mode: Mode; title: string; detail: string }[] = [
-  { mode: 'race', title: 'Same puzzle', detail: 'Both solve the identical grid' },
-  { mode: 'fair-race', title: 'Different puzzles', detail: 'Unique grids, equally hard' },
-  { mode: 'coop', title: 'Co-op', detail: 'Solve one board together' },
+const MODE_OPTIONS: { mode: Mode; title: string; detail: string; tilt: number }[] = [
+  { mode: 'race', title: 'Same puzzle', detail: 'Race on one grid. First to finish wins.', tilt: -3 },
+  { mode: 'fair-race', title: 'Different puzzles', detail: 'Your own grids, exactly as hard.', tilt: 2 },
+  { mode: 'coop', title: 'Co-op', detail: 'One board, two pencils.', tilt: -1.5 },
 ];
 
 function loadName() {
@@ -59,108 +60,108 @@ export function HomeScreen({ initialCode, onSolo, onRace }: Props) {
 
   return (
     <div className="home">
-      <header className="hero">
+      <header>
         <h1>Sudoku</h1>
-        <p>Play alone, race a friend, or solve one together.</p>
+        <p className="tagline hand">for you and a friend</p>
       </header>
 
-      <section className="card">
-        <h2>Solo</h2>
-        <button type="button" className="primary wide" onClick={onSolo}>
-          Play solo
-        </button>
-      </section>
+      <div className="field">
+        <label htmlFor="name">Your name</label>
+        <input
+          id="name"
+          className="line-input name-input"
+          value={name}
+          maxLength={MAX_NAME_LENGTH}
+          autoComplete="nickname"
+          placeholder="Write it here"
+          aria-invalid={nameMissing}
+          aria-describedby={nameMissing ? 'name-error' : undefined}
+          onChange={(e) => {
+            setName(e.target.value);
+            setNameMissing(false);
+          }}
+        />
+        {nameMissing && (
+          <span id="name-error" className="error-text">
+            Add your name so your friend knows who they’re playing with.
+          </span>
+        )}
+      </div>
 
-      <section className="card">
-        <h2>Play with a friend</h2>
-        <label className="field">
-          <span>Your name</span>
-          <input
-            id="name"
-            value={name}
-            maxLength={MAX_NAME_LENGTH}
-            autoComplete="nickname"
-            placeholder="e.g. Sam"
-            aria-invalid={nameMissing}
-            onChange={(e) => {
-              setName(e.target.value);
-              setNameMissing(false);
-            }}
-          />
-          {nameMissing && (
-            <small className="error-text">Enter a name so your friend knows who they’re playing with.</small>
-          )}
-        </label>
+      <form
+        className="field"
+        style={{ gap: 18 }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          withName((n) => onRace({ t: 'create', mode, difficulty, name: n }));
+        }}
+      >
+        <section className="choices">
+          <h2 id="mode-heading">How do you want to play?</h2>
+          <div className="choices" role="radiogroup" aria-labelledby="mode-heading">
+            {MODE_OPTIONS.map((m) => (
+              <button
+                key={m.mode}
+                type="button"
+                role="radio"
+                aria-checked={m.mode === mode}
+                className="choice"
+                onClick={() => setMode(m.mode)}
+              >
+                <DrawnCheckbox checked={m.mode === mode} tilt={m.tilt} />
+                <span className="choice-text">
+                  <span className="choice-title">{m.title}</span>
+                  <span className="choice-detail">{m.detail}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
 
-        <div className="split">
-          <form
-            className="option"
-            onSubmit={(e) => {
-              e.preventDefault();
-              withName((n) => onRace({ t: 'create', mode, difficulty, name: n }));
-            }}
-          >
-            <h3>Start a game</h3>
-            <div className="modes" role="radiogroup" aria-label="Race type">
-              {MODE_OPTIONS.map((m) => (
-                <button
-                  key={m.mode}
-                  type="button"
-                  role="radio"
-                  aria-checked={m.mode === mode}
-                  className={m.mode === mode ? 'mode on' : 'mode'}
-                  onClick={() => setMode(m.mode)}
-                >
-                  <strong>{m.title}</strong>
-                  <span>{m.detail}</span>
-                </button>
-              ))}
-            </div>
-            <div className="segmented" role="radiogroup" aria-label="Difficulty">
-              {DIFFICULTIES.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  role="radio"
-                  aria-checked={d === difficulty}
-                  className={d === difficulty ? 'on' : ''}
-                  onClick={() => setDifficulty(d)}
-                >
-                  {label(d)}
-                </button>
-              ))}
-            </div>
-            <button type="submit" className="primary wide">
-              Create room
+        <div className="difficulty" role="radiogroup" aria-label="Difficulty">
+          {DIFFICULTIES.map((d) => (
+            <button key={d} type="button" role="radio" aria-checked={d === difficulty} onClick={() => setDifficulty(d)}>
+              {d === difficulty && <DrawnCircle />}
+              {label(d)}
             </button>
-          </form>
-
-          <form
-            className="option"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (cleanCode.length === ROOM_CODE_LENGTH)
-                withName((n) => onRace({ t: 'join', code: cleanCode, name: n }));
-            }}
-          >
-            <h3>Join a game</h3>
-            <input
-              className="code-input"
-              value={code}
-              maxLength={ROOM_CODE_LENGTH}
-              placeholder="ROOM CODE"
-              aria-label="Room code"
-              autoCapitalize="characters"
-              autoComplete="off"
-              spellCheck={false}
-              onChange={(e) => setCode(normalizeCode(e.target.value))}
-            />
-            <button type="submit" className="primary wide" disabled={cleanCode.length !== ROOM_CODE_LENGTH}>
-              Join
-            </button>
-          </form>
+          ))}
         </div>
-      </section>
+
+        <button type="submit" className="btn primary wide" style={{ minHeight: 54, fontSize: 17 }}>
+          Create room
+        </button>
+      </form>
+
+      <form
+        className="field"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (cleanCode.length === ROOM_CODE_LENGTH) withName((n) => onRace({ t: 'join', code: cleanCode, name: n }));
+        }}
+      >
+        <label htmlFor="room-code">Got a room code?</label>
+        <div className="join-row">
+          <input
+            id="room-code"
+            className="line-input code-input"
+            value={code}
+            maxLength={ROOM_CODE_LENGTH}
+            placeholder="e.g. K7QM2D"
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(e) => setCode(normalizeCode(e.target.value))}
+          />
+          <button type="submit" className="btn" disabled={cleanCode.length !== ROOM_CODE_LENGTH}>
+            Join
+          </button>
+        </div>
+      </form>
+
+      <button type="button" className="text-btn link" onClick={onSolo}>
+        <PencilIcon />
+        Play solo instead
+      </button>
     </div>
   );
 }

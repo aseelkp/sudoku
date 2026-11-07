@@ -25,7 +25,8 @@ test('co-op: one shared board with shared notes and cursors, solved together', a
 
   // Partner's cursor
   await cells(ana).nth(first).click();
-  await expect(cells(ben).nth(first)).toHaveClass(/partner/);
+  await expect(cells(ben).nth(first)).toHaveClass(/partner-cursor/);
+  await expect(cells(ben).nth(first)).toHaveAttribute('data-partner', 'Ana');
 
   // Shared pencil marks
   await ana.keyboard.press(`Shift+Digit${solution[first]}`);
@@ -45,5 +46,5 @@ test('co-op: one shared board with shared notes and cursors, solved together', a
 
   await expect(ana.getByRole('status')).toContainText('Solved together!');
   await expect(ben.getByRole('status')).toContainText('Solved together!');
-  await expect(ana.getByRole('status')).toContainText('Ben placed');
+  await expect(ana.getByRole('row', { name: /Ben/ })).toContainText('placed');
 });

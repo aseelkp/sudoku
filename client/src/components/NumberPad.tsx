@@ -1,4 +1,5 @@
 import { type PlayerBoard, remaining } from '@sudoku/shared';
+import { EraserIcon, PencilIcon } from './icons';
 
 interface Props {
   board: PlayerBoard;
@@ -20,11 +21,12 @@ export function NumberPad({ board, notesMode, disabled, onDigit, onErase, onTogg
               key={d}
               type="button"
               className="digit"
+              aria-label={`${d}, ${left} left`}
               disabled={disabled || left === 0}
               onClick={() => onDigit(d)}
             >
-              {d}
-              <small>{left || ''}</small>
+              <span className="digit-value">{d}</span>
+              <span className="digit-left">{left || ''}</span>
             </button>
           );
         })}
@@ -32,14 +34,16 @@ export function NumberPad({ board, notesMode, disabled, onDigit, onErase, onTogg
       <div className="tools">
         <button
           type="button"
-          className={notesMode ? 'tool on' : 'tool'}
+          className={notesMode ? 'btn on' : 'btn'}
           aria-pressed={notesMode}
           disabled={disabled}
           onClick={onToggleNotes}
         >
+          <PencilIcon />
           Notes {notesMode ? 'on' : 'off'} <kbd>N</kbd>
         </button>
-        <button type="button" className="tool" disabled={disabled} onClick={onErase}>
+        <button type="button" className="btn" disabled={disabled} onClick={onErase}>
+          <EraserIcon />
           Erase <kbd>⌫</kbd>
         </button>
       </div>

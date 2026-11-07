@@ -4,7 +4,7 @@ import { blanksOf, createRoom, joinByLink, newPlayer, play, readGivens, solve, w
 test('fair race: each player gets a different board of the same size', async ({ page: ana, browser }) => {
   const ben = await newPlayer(browser);
   const code = await createRoom(ana, 'Ana', 'Different puzzles', 'Hard');
-  await expect(ana.locator('.waiting')).toContainText('Different puzzles');
+  await expect(ana.locator('.waiting')).toContainText(/different puzzles/i);
   await joinByLink(ben, code, 'Ben');
   await waitForStart(ana, ben);
 
