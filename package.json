@@ -14,14 +14,16 @@
     "build": "npm run build -w client && npm run build -w server",
     "start": "npm start -w server",
     "test": "npm test -w shared -w server",
-    "typecheck": "npm run typecheck -w shared -w server && npx tsc --noEmit -p client",
+    "typecheck": "npm run typecheck -w shared -w server && tsc --noEmit -p client && tsc --noEmit -p e2e",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm test"
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.0",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
